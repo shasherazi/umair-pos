@@ -14,6 +14,31 @@ router.get('/', async (req, res) => {
   }
 });
 
+// Get current month sales
+router.get('/current-month', async (req, res) => {
+  const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  const endOfMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+
+  try {
+    const sales = await prisma.sale.findMany({
+      where: {
+        saleTime: {
+          gte: startOfMonth,
+          lte: endOfMonth,
+        },
+      },
+      // sort by reverse chronological order
+      orderBy: { saleTime: 'desc' },
+      include: {
+        saleItems: true,
+      },
+    });
+    res.json(sales);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
 // Get sale by ID
 router.get('/:id', async (req, res) => {
   const id = Number(req.params.id);
@@ -30,6 +55,7 @@ router.get('/:id', async (req, res) => {
     res.status(500).json({ error: (error as Error).message });
   }
 });
+
 
 // Create a new sale
 router.post('/', async (req, res) => {
@@ -74,6 +100,7 @@ router.post('/', async (req, res) => {
         storeId,
         saleTime: saleTime ? new Date(saleTime) : new Date(),
         discount,
+        total,
         saleItems: {
           create: saleItemsData,
         },

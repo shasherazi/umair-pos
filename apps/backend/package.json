@@ -8,6 +8,7 @@
     "dev": "nodemon --watch src --exec ts-node -r tsconfig-paths/register src/index.ts",
     "build": "tsc",
     "start": "node dist/index.js",
+    "seed": "ts-node -r tsconfig-paths/register prisma/seed.ts",
     "type-check": "tsc --noEmit"
   },
   "keywords": [],

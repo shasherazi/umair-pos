@@ -36,16 +36,38 @@ function Index() {
   if (error) return <Typography color="error">Error loading stores</Typography>;
 
   return (
-    <Box sx={{ maxWidth: 400, mx: "auto", mt: 4 }}>
-      <Typography variant="h5" gutterBottom>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        mt: -4,
+      }}
+    >
+      <Typography variant="h4" gutterBottom>
         Select a Store
       </Typography>
       <List>
         {data.map((store: { id: number; name: string }) => (
           <ListItem
+            sx={{
+              cursor: "pointer",
+              mb: 1,
+              backgroundColor: "grey.200",
+              borderRadius: "8px",
+              minWidth: "300px",
+              py: 1,
+            }}
             key={store.id}
             secondaryAction={
               <IconButton
+                sx={{
+                  color: "primary.main",
+                  backgroundColor: "white",
+                  ":hover": { backgroundColor: "white" },
+                }}
                 edge="end"
                 aria-label="login"
                 onClick={() => {

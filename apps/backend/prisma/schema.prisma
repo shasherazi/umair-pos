@@ -32,6 +32,7 @@ model Sale {
   storeId   Int
   saleTime  DateTime   @default(now())
   discount  Float      @default(0)
+  total     Float      @default(0)
   saleItems SaleItem[]
   createdAt DateTime   @default(now())
 }
