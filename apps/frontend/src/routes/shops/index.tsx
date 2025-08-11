@@ -17,24 +17,22 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 
-const fetchInventory = async (storeId: number) => {
-  const res = await fetch(
-    `http://localhost:3001/api/stores/${storeId}/products`,
-  );
+const fetchShops = async (storeId: number) => {
+  const res = await fetch(`http://localhost:3001/api/stores/${storeId}/shops`);
   return res.json();
 };
 
-function InventoryPage() {
+function ShopsPage() {
   const { activeStore } = useStore();
   const navigate = useNavigate();
 
   const {
-    data: products,
+    data: shops,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["inventory", activeStore?.id],
-    queryFn: () => fetchInventory(activeStore!.id),
+    queryKey: ["shops", activeStore?.id],
+    queryFn: () => fetchShops(activeStore!.id),
     enabled: !!activeStore,
   });
 
@@ -46,49 +44,55 @@ function InventoryPage() {
         alignItems="flex-end"
         mb={2}
       >
-        <Typography variant="h5">Inventory</Typography>
+        <Typography variant="h5"> Shops </Typography>
         <Button
           variant="contained"
           color="primary"
           startIcon={<AddIcon />}
-          onClick={() => navigate({ to: "/inventory/new" })}
+          onClick={() => navigate({ to: "/shops/new" })}
         >
-          Add new item
+          Add new shop
         </Button>
       </Stack>
 
       {isLoading ? (
         <CircularProgress />
       ) : error ? (
-        <Typography color="error">Error loading inventory</Typography>
-      ) : !products || products.length === 0 ? (
-        <Typography>No products found.</Typography>
+        <Typography color="error"> Error loading shops </Typography>
+      ) : !shops || shops.length === 0 ? (
+        <Typography>No shops found.</Typography>
       ) : (
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Product Name</TableCell>
-                <TableCell>Unit Price</TableCell>
-                <TableCell>Units in Stock</TableCell>
-                <TableCell>Total Stock Value</TableCell>
+                <TableCell>Shop Name </TableCell>
+                <TableCell> Total Cash Paid </TableCell>
+                <TableCell> Total Credit </TableCell>
+                <TableCell> First Sale Date </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {products.map((product: any) => (
+              {shops.map((shop: any) => (
                 <TableRow
-                  key={product.id}
-                  onClick={() => navigate({ to: `/inventory/${product.id}` })}
+                  key={shop.id}
+                  onClick={() => navigate({ to: `/shops/${shop.id}` })}
                   sx={{
                     cursor: "pointer",
                     "&:hover": { backgroundColor: "#f5f5f5" },
                   }}
                 >
-                  <TableCell>{product.name}</TableCell>
-                  <TableCell>Rs. {product.price.toFixed(2)}</TableCell>
-                  <TableCell>{product.stock}</TableCell>
+                  <TableCell>{shop.name} </TableCell>
                   <TableCell>
-                    Rs. {(product.stock * product.price).toFixed(2)}
+                    Rs. {shop.cashPaid ? shop.cashPaid.toFixed(2) : "0.00"}
+                  </TableCell>
+                  <TableCell>
+                    Rs. {shop.credit ? shop.credit.toFixed(2) : "0.00"}
+                  </TableCell>
+                  <TableCell>
+                    {shop.firstSaleDate
+                      ? new Date(shop.firstSaleDate).toLocaleString()
+                      : "-"}
                   </TableCell>
                 </TableRow>
               ))}
@@ -100,6 +104,6 @@ function InventoryPage() {
   );
 }
 
-export const Route = createFileRoute("/inventory/")({
-  component: InventoryPage,
+export const Route = createFileRoute("/shops/")({
+  component: ShopsPage,
 });

@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useStore } from "../../context/StoreContext";
+import { useStore } from "../../../context/StoreContext";
 import {
   saleCreateSchema,
   type SaleCreateInput,
@@ -20,6 +20,10 @@ import {
   Stack,
   IconButton,
   InputAdornment,
+  RadioGroup,
+  FormControlLabel,
+  Radio,
+  FormLabel,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import { useState } from "react";
@@ -31,19 +35,34 @@ const fetchProducts = async (storeId: number) => {
   return res.json();
 };
 
+const fetchShops = async (storeId: number) => {
+  const res = await fetch(`http://localhost:3001/api/stores/${storeId}/shops`);
+  return res.json();
+};
+
 function NewSale() {
   const { activeStore } = useStore();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  const [saleType, setSaleType] = useState<"CASH" | "CREDIT">("CASH");
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
   const [discount, setDiscount] = useState<number>(0);
-  const [inputValue, setInputValue] = useState(""); // For Autocomplete search bar
+  const [inputValue, setInputValue] = useState(""); // For product Autocomplete
+  const [selectedShop, setSelectedShop] = useState<any | null>(null);
+  const [shopInputValue, setShopInputValue] = useState(""); // For shop Autocomplete
 
   // Fetch products for the active store
-  const { data: products, isLoading } = useQuery({
+  const { data: products, isLoading: productsLoading } = useQuery({
     queryKey: ["products", activeStore?.id],
     queryFn: () => fetchProducts(activeStore!.id),
+    enabled: !!activeStore,
+  });
+
+  // Fetch shops for the active store
+  const { data: shops, isLoading: shopsLoading } = useQuery({
+    queryKey: ["shops", activeStore?.id],
+    queryFn: () => fetchShops(activeStore!.id),
     enabled: !!activeStore,
   });
 
@@ -81,14 +100,18 @@ function NewSale() {
 
   const mutation = useMutation({
     mutationFn: async () => {
+      if (!selectedShop) throw new Error("Shop is required");
+
       const payload: SaleCreateInput = {
         storeId: activeStore!.id,
+        shopId: selectedShop.id,
         items: selectedProducts.map((p) => ({
           productId: p.id,
           quantity: p.quantity,
           price: p.salePrice,
         })),
         discount,
+        saleType,
       };
 
       const parseResult = saleCreateSchema.safeParse(payload);
@@ -112,7 +135,7 @@ function NewSale() {
     },
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["currentMonthSales"] });
-      navigate({ to: `/dashboard/${data.id}` });
+      navigate({ to: `/reports/sales/${data.id}` });
     },
   });
 
@@ -123,9 +146,30 @@ function NewSale() {
       </Typography>
 
       <Autocomplete
+        options={shops || []}
+        getOptionLabel={(option: any) => option.name}
+        loading={shopsLoading}
+        value={selectedShop}
+        onChange={(_, value) => setSelectedShop(value)}
+        inputValue={shopInputValue}
+        onInputChange={(_, newInputValue) => setShopInputValue(newInputValue)}
+        clearOnBlur
+        clearOnEscape
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="Select shop"
+            variant="outlined"
+            required
+          />
+        )}
+        sx={{ mb: 2 }}
+      />
+
+      <Autocomplete
         options={products || []}
         getOptionLabel={(option: any) => option.name}
-        loading={isLoading}
+        loading={productsLoading}
         onChange={(_, value) => {
           if (value) handleAddProduct(value);
           setInputValue(""); // Clear search bar after adding
@@ -143,6 +187,19 @@ function NewSale() {
         )}
         sx={{ mb: 2 }}
       />
+
+      <FormLabel component="legend" sx={{ mt: 2 }}>
+        Sale Type
+      </FormLabel>
+      <RadioGroup
+        row
+        value={saleType}
+        onChange={(e) => setSaleType(e.target.value as "CASH" | "CREDIT")}
+        sx={{ mb: 2 }}
+      >
+        <FormControlLabel value="CASH" control={<Radio />} label="Cash" />
+        <FormControlLabel value="CREDIT" control={<Radio />} label="Credit" />
+      </RadioGroup>
 
       {selectedProducts.length > 0 && (
         <Paper sx={{ mb: 2 }}>
@@ -243,6 +300,7 @@ function NewSale() {
         variant="contained"
         color="primary"
         disabled={
+          !selectedShop ||
           selectedProducts.length === 0 ||
           mutation.isPending ||
           selectedProducts.some(
@@ -257,6 +315,6 @@ function NewSale() {
   );
 }
 
-export const Route = createFileRoute("/dashboard/new")({
+export const Route = createFileRoute("/reports/sales/new")({
   component: NewSale,
 });

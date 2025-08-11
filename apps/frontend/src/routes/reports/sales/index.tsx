@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useStore } from "../../context/StoreContext";
+import { useStore } from "../../../context/StoreContext";
 import {
   Box,
   Typography,
@@ -23,7 +23,7 @@ const fetchCurrentMonthSales = async () => {
   return res.json();
 };
 
-function Dashboard() {
+function SalesReport() {
   const navigate = useNavigate();
   const { activeStore } = useStore();
   const {
@@ -41,7 +41,7 @@ function Dashboard() {
   );
 
   return (
-    <Box sx={{ maxWidth: 900, mx: "auto", mt: 4, p: 2 }}>
+    <Box sx={{ mx: "auto", mt: 4, p: 2 }}>
       <Stack
         direction="row"
         justifyContent="space-between"
@@ -57,7 +57,7 @@ function Dashboard() {
           variant="contained"
           color="primary"
           startIcon={<AddIcon />}
-          onClick={() => navigate({ to: "/dashboard/new" })}
+          onClick={() => navigate({ to: "/reports/sales/new" })}
         >
           Add Sale
         </Button>
@@ -83,11 +83,12 @@ function Dashboard() {
             <TableHead>
               <TableRow>
                 <TableCell>Sale ID</TableCell>
-                <TableCell>Date</TableCell>
+                <TableCell>Shop name</TableCell>
+                <TableCell>Sale type</TableCell>
                 <TableCell>Price</TableCell>
                 <TableCell>Discount (%)</TableCell>
                 <TableCell>Sale Price</TableCell>
-                <TableCell align="right">Total Items</TableCell>
+                <TableCell>Total Items</TableCell>
                 <TableCell align="right">Sale Time</TableCell>
               </TableRow>
             </TableHead>
@@ -95,16 +96,15 @@ function Dashboard() {
               {filteredSales.map((sale: any) => (
                 <TableRow
                   key={sale.id}
-                  onClick={() => navigate({ to: `/dashboard/${sale.id}` })}
+                  onClick={() => navigate({ to: `/reports/sales/${sale.id}` })}
                   sx={{
                     cursor: "pointer",
                     "&:hover": { backgroundColor: "#f5f5f5" },
                   }}
                 >
                   <TableCell>{sale.id}</TableCell>
-                  <TableCell>
-                    {new Date(sale.saleTime).toLocaleDateString()}
-                  </TableCell>
+                  <TableCell>{sale.shop.name}</TableCell>
+                  <TableCell>{sale.saleType}</TableCell>
                   <TableCell>
                     Rs.{" "}
                     {sale.saleItems
@@ -131,7 +131,7 @@ function Dashboard() {
                         ).toFixed(2)
                       : "-"}
                   </TableCell>
-                  <TableCell align="right">
+                  <TableCell>
                     {sale.saleItems
                       ? sale.saleItems.reduce(
                           (sum: number, item: any) => sum + item.quantity,
@@ -152,6 +152,6 @@ function Dashboard() {
   );
 }
 
-export const Route = createFileRoute("/dashboard/")({
-  component: Dashboard,
+export const Route = createFileRoute("/reports/sales/")({
+  component: SalesReport,
 });

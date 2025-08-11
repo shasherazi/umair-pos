@@ -1,47 +1,10 @@
 import { Router } from 'express';
 import prisma from '../prisma';
 import { productCreateSchema } from '@shared/validation/product';
+import { getDateRange } from '@shared/utils/getDateRange';
 
 const router = Router();
 
-function getDateRange(period: string) {
-  const now = new Date();
-  let from: Date | undefined;
-  let to: Date | undefined;
-
-  switch (period) {
-    case "today":
-      from = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      to = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-      break;
-    case "yesterday":
-      from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-      to = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      break;
-    case "last7days":
-      from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
-      to = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-      break;
-    case "thismonth":
-      from = new Date(now.getFullYear(), now.getMonth(), 1);
-      to = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-      break;
-    case "lastmonth":
-      from = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      to = new Date(now.getFullYear(), now.getMonth(), 1);
-      break;
-    case "thisyear":
-      from = new Date(now.getFullYear(), 0, 1);
-      to = new Date(now.getFullYear() + 1, 0, 1);
-      break;
-    case "alltime":
-    default:
-      from = undefined;
-      to = undefined;
-      break;
-  }
-  return { from, to };
-}
 
 // Get all products
 router.get('/', async (req, res) => {
@@ -166,6 +129,65 @@ router.post('/', async (req, res) => {
     res.status(201).json(product);
   } catch (error) {
     res.status(400).json({ error: (error as Error).message });
+  }
+});
+
+
+// PATCH /api/products/:id
+router.patch("/:id", async (req, res) => {
+  const productId = Number(req.params.id);
+  const { price, stockChange } = req.body;
+
+  if (isNaN(productId)) {
+    return res.status(400).json({ error: "Invalid product ID" });
+  }
+
+  try {
+    // Fetch current product
+    const product = await prisma.product.findUnique({ where: { id: productId } });
+    if (!product) {
+      return res.status(404).json({ error: "Product not found" });
+    }
+
+    // Prepare update data
+    const updateData: any = {};
+
+    // Price update
+    if (price !== undefined) {
+      if (typeof price !== "number" || price < 0) {
+        return res.status(400).json({ error: "Invalid price" });
+      }
+      updateData.price = price;
+    }
+
+    // Stock change
+    if (stockChange !== undefined) {
+      if (typeof stockChange !== "number" || !Number.isInteger(stockChange)) {
+        return res.status(400).json({ error: "Invalid stock change" });
+      }
+      const newStock = product.stock + stockChange;
+      if (newStock < 0) {
+        return res.status(400).json({
+          error: `Cannot reduce stock below zero. Current stock: ${product.stock}`,
+        });
+      }
+      updateData.stock = newStock;
+    }
+
+    // If nothing to update
+    if (Object.keys(updateData).length === 0) {
+      return res.status(400).json({ error: "No valid fields to update" });
+    }
+
+    // Update product
+    const updatedProduct = await prisma.product.update({
+      where: { id: productId },
+      data: updateData,
+    });
+
+    res.json(updatedProduct);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
   }
 });
 

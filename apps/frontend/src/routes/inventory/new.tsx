@@ -60,7 +60,7 @@ function NewProduct() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["productSales"] });
-      navigate({ to: "/products" });
+      navigate({ to: "/inventory" });
     },
     onError: (err: any) => {
       setError(err.message || "Failed to add product");
@@ -121,6 +121,6 @@ function NewProduct() {
   );
 }
 
-export const Route = createFileRoute("/products/new")({
+export const Route = createFileRoute("/inventory/new")({
   component: NewProduct,
 });

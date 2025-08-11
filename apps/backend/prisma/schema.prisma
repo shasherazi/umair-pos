@@ -13,7 +13,20 @@ model Store {
   name      String    @unique
   products  Product[]
   sales     Sale[]
+  shops     Shop[]
   createdAt DateTime  @default(now())
+}
+
+model Shop {
+  id            Int       @id @default(autoincrement())
+  name          String
+  store         Store     @relation(fields: [storeId], references: [id])
+  storeId       Int
+  sales         Sale[]
+  firstSaleDate DateTime? // Set on first sale, null until then
+  cashPaid      Float     @default(0)
+  credit        Float     @default(0)
+  createdAt     DateTime  @default(now())
 }
 
 model Product {
@@ -31,9 +44,12 @@ model Sale {
   id        Int        @id @default(autoincrement())
   store     Store      @relation(fields: [storeId], references: [id])
   storeId   Int
+  shop      Shop       @relation(fields: [shopId], references: [id])
+  shopId    Int
   saleTime  DateTime   @default(now())
   discount  Float      @default(0)
   total     Float      @default(0)
+  saleType  SaleType   @default(CASH) // CASH or CREDIT
   saleItems SaleItem[]
   createdAt DateTime   @default(now())
 }
@@ -46,4 +62,9 @@ model SaleItem {
   productId Int
   quantity  Int
   price     Float // price at the time of sale (in case product price changes later)
+}
+
+enum SaleType {
+  CASH
+  CREDIT
 }

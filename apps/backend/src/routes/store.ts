@@ -65,4 +65,23 @@ router.get('/:id/products', async (req, res) => {
   }
 });
 
+// Get shops under a store
+router.get('/:id/shops', async (req, res) => {
+  const id = Number(req.params.id);
+
+  if (isNaN(id)) {
+    return res.status(400).json({ error: 'Invalid store ID' });
+  }
+
+  try {
+    const shops = await prisma.shop.findMany({
+      where: { storeId: id },
+    });
+
+    res.json(shops);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
 export default router;

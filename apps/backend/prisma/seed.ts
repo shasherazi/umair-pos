@@ -4,6 +4,7 @@ async function main() {
   await prisma.saleItem.deleteMany();
   await prisma.sale.deleteMany();
   await prisma.product.deleteMany();
+  await prisma.shop.deleteMany();
   await prisma.store.deleteMany();
 
   // Store data
@@ -12,81 +13,86 @@ async function main() {
     { name: 'Friends Foods' },
   ];
 
-  // Product data for each store
-  const products = [
+  // Shop data for each store
+  const shops = [
     [
-      {
-        "id": 1,
-        "name": "Ballpoint Pen",
-        "price": 50,
-        "stock": 100
-      },
-      {
-        "id": 2,
-        "name": "Notebook",
-        "price": 250,
-        "stock": 50
-      },
-      {
-        "id": 3,
-        "name": "Lead Pencil",
-        "price": 30,
-        "stock": 200
-      },
-      {
-        "id": 4,
-        "name": "Eraser",
-        "price": 15,
-        "stock": 0
-      },
-      {
-        "id": 5,
-        "name": "Ruler",
-        "price": 80
-      }
+      { name: 'Goldfish Downtown' },
+      { name: 'Goldfish Uptown' },
     ],
     [
-      {
-        "id": 6,
-        "name": "Lays (small)",
-        "price": 50
-      },
-      {
-        "id": 7,
-        "name": "Kurkure (small)",
-        "price": 50
-      },
-      {
-        "id": 8,
-        "name": "Slanty (small)",
-        "price": 30
-      },
-      {
-        "id": 9,
-        "name": "Cocomo",
-        "price": 50
-      },
-      {
-        "id": 10,
-        "name": "Nimko (small)",
-        "price": 40
-      }
+      { name: 'Friends Foods City Center' },
+      { name: 'Friends Foods Suburb' },
     ],
   ];
 
-  // Create stores and products
+  // Product data for each store
+  const products = [
+    [
+      { name: 'Ballpoint Pen', price: 50, stock: 100 },
+      { name: 'Notebook', price: 250, stock: 50 },
+      { name: 'Lead Pencil', price: 30, stock: 200 },
+      { name: 'Eraser', price: 15, stock: 0 },
+      { name: 'Ruler', price: 80, stock: 40 },
+    ],
+    [
+      { name: 'Lays (small)', price: 50, stock: 100 },
+      { name: 'Kurkure (small)', price: 50, stock: 100 },
+      { name: 'Slanty (small)', price: 30, stock: 100 },
+      { name: 'Cocomo', price: 50, stock: 100 },
+      { name: 'Nimko (small)', price: 40, stock: 100 },
+    ],
+  ];
+
   for (let i = 0; i < stores.length; i++) {
+    // Create store with products and shops
     const store = await prisma.store.create({
       data: {
-        id: i + 1,
         name: stores[i].name,
-        products: {
-          create: products[i],
-        },
+        products: { create: products[i] },
+        shops: { create: shops[i] },
       },
-      include: { products: true },
+      include: { products: true, shops: true },
     });
-    console.log(`Created store: ${store.name} with products:`, store.products.map(p => p.name));
+
+    console.log(`Created store: ${store.name}`);
+
+    // Generate 10 random sales for each store
+    for (let s = 0; s < 10; s++) {
+      const shop = store.shops[Math.floor(Math.random() * store.shops.length)];
+      const saleType = Math.random() > 0.5 ? 'CASH' : 'CREDIT';
+      const discount = Math.floor(Math.random() * 50);
+      const productCount = Math.floor(Math.random() * store.products.length) + 1;
+      const selectedProducts = [...store.products]
+        .sort(() => 0.5 - Math.random())
+        .slice(0, productCount);
+
+      let total = 0;
+      const saleItemsData = selectedProducts.map(p => {
+        const quantity = Math.floor(Math.random() * 5) + 1;
+        total += p.price * quantity;
+        return {
+          productId: p.id,
+          quantity,
+          price: p.price,
+        };
+      });
+
+      total -= discount;
+      if (total < 0) total = 0;
+
+      await prisma.sale.create({
+        data: {
+          storeId: store.id,
+          shopId: shop.id,
+          saleType,
+          discount,
+          total,
+          saleItems: { create: saleItemsData },
+        },
+      });
+    }
+
+    console.log(`Created 10 random sales for store: ${store.name}`);
   }
 }
 

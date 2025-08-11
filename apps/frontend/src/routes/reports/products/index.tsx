@@ -1,4 +1,4 @@
-import { useStore } from "../../context/StoreContext";
+import { useStore } from "../../../context/StoreContext";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -116,6 +116,6 @@ function ProductsPage() {
   );
 }
 
-export const Route = createFileRoute("/products/")({
+export const Route = createFileRoute("/reports/products/")({
   component: ProductsPage,
 });

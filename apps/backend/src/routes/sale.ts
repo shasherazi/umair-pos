@@ -31,6 +31,11 @@ router.get('/current-month', async (req, res) => {
       orderBy: { saleTime: 'desc' },
       include: {
         saleItems: true,
+        shop: {
+          select: {
+            name: true,
+          },
+        }
       },
     });
     res.json(sales);
@@ -53,8 +58,15 @@ router.get('/:id', async (req, res) => {
         where: { id },
         include: {
           saleItems: {
-            include: { product: true }
-          }
+            include: {
+              product: true,
+            }
+          },
+          shop: {
+            select: {
+              name: true,
+            },
+          },
         }
       });
     if (!sale) return res.status(404).json({ error: 'Sale not found' });
@@ -66,6 +78,7 @@ router.get('/:id', async (req, res) => {
 
 
 // Create a new sale
+
 router.post('/', async (req, res) => {
   const parseResult = saleCreateSchema.safeParse(req.body);
 
@@ -73,7 +86,7 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: parseResult.error.issues });
   }
 
-  const { storeId, items, discount = 0, saleTime } = parseResult.data;
+  const { storeId, shopId, items, discount = 0, saleTime, saleType = "CASH" } = parseResult.data;
 
   try {
     // Fetch all products in one query
@@ -113,14 +126,17 @@ router.post('/', async (req, res) => {
     // Apply discount (percentage)
     total = total * (1 - discount / 100);
 
-    // Transaction: create sale, sale items, and update product stock
+    // Transaction: create sale, sale items, update product stock, update shop
     const sale = await prisma.$transaction(async (tx) => {
+      // Create sale
       const createdSale = await tx.sale.create({
         data: {
           storeId,
+          shopId,
           saleTime: saleTime ? new Date(saleTime) : new Date(),
           discount,
           total,
+          saleType,
           saleItems: {
             create: saleItemsData,
           },
@@ -136,6 +152,28 @@ router.post('/', async (req, res) => {
           where: { id: item.productId },
           data: { stock: { decrement: item.quantity } },
         });
+      }
+
+      // Update shop: set firstSaleDate if null, and update cashPaid or credit
+      if (shopId) {
+        const shop = await tx.shop.findUnique({ where: { id: shopId } });
+        if (shop) {
+          const updateData: any = {};
+          if (!shop.firstSaleDate) {
+            updateData.firstSaleDate = createdSale.saleTime;
+          }
+          if (saleType === "CASH") {
+            updateData.cashPaid = { increment: total };
+          } else if (saleType === "CREDIT") {
+            updateData.credit = { increment: total };
+          }
+          if (Object.keys(updateData).length > 0) {
+            await tx.shop.update({
+              where: { id: shopId },
+              data: updateData,
+            });
+          }
+        }
       }
 
       return createdSale;

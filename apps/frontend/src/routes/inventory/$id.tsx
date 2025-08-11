@@ -1,0 +1,208 @@
+import {
+  createFileRoute,
+  useParams,
+  useNavigate,
+} from "@tanstack/react-router";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useStore } from "../../context/StoreContext";
+import {
+  Box,
+  Typography,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Paper,
+  TextField,
+  Button,
+  Stack,
+  Alert,
+  CircularProgress,
+} from "@mui/material";
+import { useState } from "react";
+
+// Fetch product details and sales stats
+const fetchProductDetails = async (storeId: number, productId: number) => {
+  // Get product info
+  const productRes = await fetch(
+    `http://localhost:3001/api/products/${productId}`,
+  );
+  if (!productRes.ok) throw new Error("Product not found");
+  const product = await productRes.json();
+
+  // Get sales stats for this product (all time)
+  const salesRes = await fetch(
+    `http://localhost:3001/api/products/sales?storeId=${storeId}&productId=${productId}&period=alltime`,
+  );
+  const salesStatsArr = await salesRes.json();
+  // If the backend returns an array, find the product by id
+  const salesStats =
+    Array.isArray(salesStatsArr) && salesStatsArr.length > 0
+      ? salesStatsArr.find((p: any) => p.id === productId) || {
+          unitsSold: 0,
+          amountMade: 0,
+        }
+      : { unitsSold: 0, amountMade: 0 };
+
+  return { ...product, ...salesStats };
+};
+
+function ProductDetailsPage() {
+  const { activeStore } = useStore();
+  const { id } = useParams({ from: "/inventory/$id" });
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const productId = Number(id);
+
+  const {
+    data: product,
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["productDetails", activeStore?.id, productId],
+    queryFn: () => fetchProductDetails(activeStore!.id, productId),
+    enabled: !!activeStore && !!productId,
+  });
+
+  // Form state
+  const [price, setPrice] = useState<string>("");
+  const [stockChange, setStockChange] = useState<string>("");
+  const [editError, setEditError] = useState<string | null>(null);
+
+  // PATCH mutation
+  const mutation = useMutation({
+    mutationFn: async () => {
+      const payload: any = {};
+      if (price !== "") {
+        const priceNum = Number(price);
+        if (isNaN(priceNum) || priceNum < 0) {
+          throw new Error("Invalid price");
+        }
+        payload.price = priceNum;
+      }
+      if (stockChange !== "") {
+        const stockNum = Number(stockChange);
+        if (!Number.isInteger(stockNum)) {
+          throw new Error("Stock change must be an integer");
+        }
+        payload.stockChange = stockNum;
+      }
+      if (Object.keys(payload).length === 0) {
+        throw new Error("No changes to update");
+      }
+      const res = await fetch(
+        `http://localhost:3001/api/products/${productId}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        },
+      );
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to update product");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["productDetails", activeStore?.id, productId],
+      });
+      setEditError(null);
+      setPrice("");
+      setStockChange("");
+    },
+    onError: (err: any) => {
+      setEditError(err.message || "Failed to update product");
+    },
+  });
+
+  if (isLoading) return <CircularProgress />;
+  if (error || !product)
+    return <Typography color="error">Product not found.</Typography>;
+
+  const totalStockValue = product.stock * product.price;
+
+  return (
+    <Box sx={{ maxWidth: 600, mx: "auto", mt: 4, p: 2 }}>
+      <Typography variant="h5" mb={2}>
+        Product Details
+      </Typography>
+      <TableContainer component={Paper} sx={{ mb: 2 }}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>Product Name</TableCell>
+              <TableCell>Unit Price</TableCell>
+              <TableCell>Units in Stock</TableCell>
+              <TableCell>Total Stock Value</TableCell>
+              <TableCell>Items Sold</TableCell>
+              <TableCell>Money Made</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            <TableRow>
+              <TableCell>{product.name}</TableCell>
+              <TableCell>Rs. {product.price.toFixed(2)}</TableCell>
+              <TableCell>{product.stock}</TableCell>
+              <TableCell>Rs. {totalStockValue.toFixed(2)}</TableCell>
+              <TableCell>{product.unitsSold ?? 0}</TableCell>
+              <TableCell>
+                Rs.{" "}
+                {product.amountMade ? product.amountMade.toFixed(2) : "0.00"}
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </TableContainer>
+
+      <Typography variant="h6" mb={1}>
+        Edit Product
+      </Typography>
+      <Stack spacing={2} mb={2}>
+        <TextField
+          label="Unit Price"
+          type="number"
+          value={price}
+          onChange={(e) => setPrice(e.target.value)}
+          slotProps={{ htmlInput: { min: 0 } }}
+        />
+        <TextField
+          label={`Stock Change (current: ${product.stock})`}
+          type="number"
+          value={stockChange}
+          onChange={(e) => {
+            // Only allow decrease up to current stock
+            const val = Number(e.target.value);
+            if (val < 0 && Math.abs(val) > product.stock) {
+              setStockChange((-product.stock).toString());
+            } else {
+              setStockChange(e.target.value);
+            }
+          }}
+          slotProps={{ htmlInput: { step: 1 } }}
+          helperText="Enter positive to add, negative to subtract. Cannot reduce below zero."
+        />
+        {editError && <Alert severity="error">{editError}</Alert>}
+        <Button
+          variant="contained"
+          color="primary"
+          disabled={mutation.isPending}
+          onClick={() => mutation.mutate()}
+        >
+          {mutation.isPending ? "Saving..." : "Save Changes"}
+        </Button>
+      </Stack>
+      <Button variant="outlined" onClick={() => navigate({ to: "/inventory" })}>
+        Back to Inventory
+      </Button>
+    </Box>
+  );
+}
+
+export const Route = createFileRoute("/inventory/$id")({
+  component: ProductDetailsPage,
+});

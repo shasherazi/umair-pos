@@ -72,7 +72,7 @@ function Index() {
                 aria-label="login"
                 onClick={() => {
                   setActiveStore(store, () => {
-                    navigate({ to: "/dashboard" });
+                    navigate({ to: "/reports/sales" });
                   });
                 }}
               >

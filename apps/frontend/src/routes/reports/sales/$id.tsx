@@ -29,7 +29,7 @@ const fetchSale = async (id: string) => {
 };
 
 function SaleDetails() {
-  const { id } = useParams("/dashboard/:id");
+  const { id } = useParams({ from: "/reports/sales/$id" });
   const navigate = useNavigate();
 
   const {
@@ -123,11 +123,11 @@ function SaleDetails() {
   };
 
   return (
-    <Box sx={{ maxWidth: 700, mx: "auto", mt: 4, p: 2 }}>
+    <Box sx={{ mx: "auto", mt: 4, p: 2 }}>
       <Stack direction="row" alignItems="center" spacing={2} mb={2}>
         <Button
           startIcon={<ArrowBackIcon />}
-          onClick={() => navigate({ to: "/dashboard" })}
+          onClick={() => navigate({ to: "/reports/sales" })}
         >
           Back to Sales
         </Button>
@@ -149,6 +149,10 @@ function SaleDetails() {
       <Typography variant="subtitle2" mb={2}>
         Store ID: {sale.storeId}
       </Typography>
+      <Typography variant="subtitle2" mb={2}>
+        Shop name: {sale.shop.name}
+      </Typography>
+
       <TableContainer component={Paper} sx={{ mb: 2 }}>
         <Table>
           <TableHead>
@@ -227,6 +231,6 @@ function SaleDetails() {
   );
 }
 
-export const Route = createFileRoute("/dashboard/$id")({
+export const Route = createFileRoute("/reports/sales/$id")({
   component: SaleDetails,
 });
