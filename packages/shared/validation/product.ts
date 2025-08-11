@@ -4,6 +4,7 @@ export const productCreateSchema = z.object({
   name: z.string().min(1, "Name is required"),
   price: z.number().nonnegative(),
   storeId: z.number().int().positive(),
+  stock: z.number().int().nonnegative().optional(),
 });
 
 export type ProductCreateInput = z.infer<typeof productCreateSchema>;

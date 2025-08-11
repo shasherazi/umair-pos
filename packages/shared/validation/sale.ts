@@ -2,7 +2,8 @@ import { z } from 'zod';
 
 export const saleItemSchema = z.object({
   productId: z.number().int().positive(),
-  quantity: z.number().int().positive(),
+  quantity: z.number().int().nonnegative(),
+  price: z.number().nonnegative(), // Accept price from frontend
 });
 
 export const saleCreateSchema = z.object({

@@ -18,22 +18,26 @@ async function main() {
       {
         "id": 1,
         "name": "Ballpoint Pen",
-        "price": 50
+        "price": 50,
+        "stock": 100
       },
       {
         "id": 2,
         "name": "Notebook",
-        "price": 250
+        "price": 250,
+        "stock": 50
       },
       {
         "id": 3,
         "name": "Lead Pencil",
-        "price": 30
+        "price": 30,
+        "stock": 200
       },
       {
         "id": 4,
         "name": "Eraser",
-        "price": 15
+        "price": 15,
+        "stock": 0
       },
       {
         "id": 5,

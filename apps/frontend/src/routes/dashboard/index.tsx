@@ -1,9 +1,6 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
-import { AddSaleDialog } from "../components/AddSaleDialog";
-import { useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useStore } from "../context/StoreContext";
+import { useStore } from "../../context/StoreContext";
 import {
   Box,
   Typography,
@@ -27,6 +24,7 @@ const fetchCurrentMonthSales = async () => {
 };
 
 function Dashboard() {
+  const navigate = useNavigate();
   const { activeStore } = useStore();
   const {
     data: sales,
@@ -41,14 +39,6 @@ function Dashboard() {
   const filteredSales = sales?.filter(
     (sale: any) => sale.storeId === activeStore?.id,
   );
-
-  const [addSaleOpen, setAddSaleOpen] = useState(false);
-  const queryClient = useQueryClient();
-
-  const handleSaleAdded = () => {
-    // Refetch sales after adding
-    queryClient.invalidateQueries({ queryKey: ["currentMonthSales"] });
-  };
 
   return (
     <Box sx={{ maxWidth: 900, mx: "auto", mt: 4, p: 2 }}>
@@ -67,7 +57,7 @@ function Dashboard() {
           variant="contained"
           color="primary"
           startIcon={<AddIcon />}
-          onClick={() => setAddSaleOpen(true)}
+          onClick={() => navigate({ to: "/dashboard/new" })}
         >
           Add Sale
         </Button>
@@ -92,20 +82,31 @@ function Dashboard() {
           <Table>
             <TableHead>
               <TableRow>
+                <TableCell>Sale ID</TableCell>
                 <TableCell>Date</TableCell>
-                <TableCell>Total Price</TableCell>
+                <TableCell>Price</TableCell>
                 <TableCell>Discount (%)</TableCell>
-                <TableCell>Discounted Price</TableCell>
+                <TableCell>Sale Price</TableCell>
                 <TableCell align="right">Total Items</TableCell>
+                <TableCell align="right">Sale Time</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {filteredSales.map((sale: any) => (
-                <TableRow key={sale.id}>
+                <TableRow
+                  key={sale.id}
+                  onClick={() => navigate({ to: `/dashboard/${sale.id}` })}
+                  sx={{
+                    cursor: "pointer",
+                    "&:hover": { backgroundColor: "#f5f5f5" },
+                  }}
+                >
+                  <TableCell>{sale.id}</TableCell>
                   <TableCell>
                     {new Date(sale.saleTime).toLocaleDateString()}
                   </TableCell>
                   <TableCell>
+                    Rs.{" "}
                     {sale.saleItems
                       ? sale.saleItems
                           .reduce(
@@ -117,7 +118,19 @@ function Dashboard() {
                       : "-"}
                   </TableCell>
                   <TableCell>{sale.discount ?? 0}</TableCell>
-                  <TableCell>{sale.total}</TableCell>
+                  <TableCell>
+                    Rs.{" "}
+                    {sale.saleItems
+                      ? (
+                          sale.saleItems.reduce(
+                            (sum: number, item: any) =>
+                              sum + item.price * item.quantity,
+                            0,
+                          ) *
+                          (1 - (sale.discount ?? 0) / 100)
+                        ).toFixed(2)
+                      : "-"}
+                  </TableCell>
                   <TableCell align="right">
                     {sale.saleItems
                       ? sale.saleItems.reduce(
@@ -126,21 +139,19 @@ function Dashboard() {
                         )
                       : "-"}
                   </TableCell>
+                  <TableCell align="right">
+                    {new Date(sale.saleTime).toLocaleString()}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </TableContainer>
       )}
-      <AddSaleDialog
-        open={addSaleOpen}
-        onClose={() => setAddSaleOpen(false)}
-        onSaleAdded={handleSaleAdded}
-      />
     </Box>
   );
 }
 
-export const Route = createFileRoute("/dashboard")({
+export const Route = createFileRoute("/dashboard/")({
   component: Dashboard,
 });

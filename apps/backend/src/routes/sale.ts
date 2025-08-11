@@ -48,7 +48,15 @@ router.get('/:id', async (req, res) => {
   }
 
   try {
-    const sale = await prisma.sale.findUnique({ where: { id } });
+    const sale = await prisma.sale.findUnique(
+      {
+        where: { id },
+        include: {
+          saleItems: {
+            include: { product: true }
+          }
+        }
+      });
     if (!sale) return res.status(404).json({ error: 'Sale not found' });
     res.json(sale);
   } catch (error) {
@@ -78,36 +86,59 @@ router.post('/', async (req, res) => {
       return res.status(400).json({ error: 'One or more products not found' });
     }
 
-    // Calculate total price
+    // Check stock for each item
+    for (const item of items) {
+      const product = products.find(p => p.id === item.productId);
+      if (!product) {
+        return res.status(400).json({ error: `Product ${item.productId} not found` });
+      }
+      if (product.stock < item.quantity) {
+        return res.status(400).json({
+          error: `Not enough stock for product "${product.name}". Available: ${product.stock}, Requested: ${item.quantity}`,
+        });
+      }
+    }
+
+    // Calculate total price using the price provided in each sale item
     let total = 0;
     const saleItemsData = items.map(item => {
-      const product = products.find(p => p.id === item.productId)!;
-      const itemTotal = product.price * item.quantity;
-      total += itemTotal;
+      total += item.price * item.quantity;
       return {
         productId: item.productId,
         quantity: item.quantity,
-        price: product.price,
+        price: item.price,
       };
     });
 
-    // Apply discount
+    // Apply discount (percentage)
     total = total * (1 - discount / 100);
 
-    // Create sale and sale items in a transaction
-    const sale = await prisma.sale.create({
-      data: {
-        storeId,
-        saleTime: saleTime ? new Date(saleTime) : new Date(),
-        discount,
-        total,
-        saleItems: {
-          create: saleItemsData,
+    // Transaction: create sale, sale items, and update product stock
+    const sale = await prisma.$transaction(async (tx) => {
+      const createdSale = await tx.sale.create({
+        data: {
+          storeId,
+          saleTime: saleTime ? new Date(saleTime) : new Date(),
+          discount,
+          total,
+          saleItems: {
+            create: saleItemsData,
+          },
         },
-      },
-      include: {
-        saleItems: true,
-      },
+        include: {
+          saleItems: true,
+        },
+      });
+
+      // Update stock for each product
+      for (const item of items) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: { stock: { decrement: item.quantity } },
+        });
+      }
+
+      return createdSale;
     });
 
     res.status(201).json({ ...sale, total });
@@ -115,4 +146,5 @@ router.post('/', async (req, res) => {
     res.status(400).json({ error: (error as Error).message });
   }
 });
+
 export default router;

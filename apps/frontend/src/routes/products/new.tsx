@@ -1,0 +1,126 @@
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useStore } from "../../context/StoreContext";
+import {
+  productCreateSchema,
+  type ProductCreateInput,
+} from "@shared/validation/product";
+import {
+  Box,
+  Typography,
+  TextField,
+  Button,
+  Stack,
+  Paper,
+  Alert,
+} from "@mui/material";
+import { useState } from "react";
+
+function NewProduct() {
+  const { activeStore } = useStore();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const [form, setForm] = useState({
+    name: "",
+    price: "",
+    stock: "",
+  });
+  const [error, setError] = useState<string | null>(null);
+
+  const mutation = useMutation({
+    mutationFn: async () => {
+      if (!activeStore) throw new Error("No store selected");
+
+      // Prepare and validate payload
+      const payload: ProductCreateInput = {
+        name: form.name.trim(),
+        price: Number(form.price),
+        storeId: activeStore.id,
+        ...(form.stock !== "" ? { stock: Number(form.stock) } : {}),
+      };
+
+      const parseResult = productCreateSchema.safeParse(payload);
+      if (!parseResult.success) {
+        throw new Error(
+          parseResult.error.issues.map((i) => i.message).join(", "),
+        );
+      }
+
+      const res = await fetch("http://localhost:3001/api/products", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to add product");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["productSales"] });
+      navigate({ to: "/products" });
+    },
+    onError: (err: any) => {
+      setError(err.message || "Failed to add product");
+    },
+  });
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setForm((prev) => ({
+      ...prev,
+      [e.target.name]: e.target.value,
+    }));
+    setError(null);
+  };
+
+  return (
+    <Box sx={{ maxWidth: 500, mx: "auto", mt: 4, p: 2 }}>
+      <Paper sx={{ p: 3 }}>
+        <Typography variant="h5" mb={2}>
+          Add New Product to {activeStore?.name}
+        </Typography>
+        <Stack spacing={2}>
+          <TextField
+            label="Product Name"
+            name="name"
+            value={form.name}
+            onChange={handleChange}
+            required
+          />
+          <TextField
+            label="Price"
+            name="price"
+            type="number"
+            value={form.price}
+            onChange={handleChange}
+            required
+            slotProps={{ htmlInput: { min: 0 } }}
+          />
+          <TextField
+            label="Stock (optional)"
+            name="stock"
+            type="number"
+            value={form.stock}
+            onChange={handleChange}
+            slotProps={{ htmlInput: { min: 0 } }}
+          />
+          {error && <Alert severity="error">{error}</Alert>}
+          <Button
+            variant="contained"
+            color="primary"
+            disabled={mutation.isPending}
+            onClick={() => mutation.mutate()}
+          >
+            {mutation.isPending ? "Adding..." : "Add Product"}
+          </Button>
+        </Stack>
+      </Paper>
+    </Box>
+  );
+}
+
+export const Route = createFileRoute("/products/new")({
+  component: NewProduct,
+});
