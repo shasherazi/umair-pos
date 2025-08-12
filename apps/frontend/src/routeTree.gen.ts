@@ -9,9 +9,11 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ShopsIndexRouteImport } from './routes/shops/index'
 import { Route as InventoryIndexRouteImport } from './routes/inventory/index'
+import { Route as StoresNewRouteImport } from './routes/stores/new'
 import { Route as ShopsNewRouteImport } from './routes/shops/new'
 import { Route as ShopsIdRouteImport } from './routes/shops/$id'
 import { Route as InventoryNewRouteImport } from './routes/inventory/new'
@@ -22,6 +24,11 @@ import { Route as ReportsProductsIndexRouteImport } from './routes/reports/produ
 import { Route as ReportsSalesNewRouteImport } from './routes/reports/sales/new'
 import { Route as ReportsSalesIdRouteImport } from './routes/reports/sales/$id'
 
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -35,6 +42,11 @@ const ShopsIndexRoute = ShopsIndexRouteImport.update({
 const InventoryIndexRoute = InventoryIndexRouteImport.update({
   id: '/inventory/',
   path: '/inventory/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const StoresNewRoute = StoresNewRouteImport.update({
+  id: '/stores/new',
+  path: '/stores/new',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ShopsNewRoute = ShopsNewRouteImport.update({
@@ -85,10 +97,12 @@ const ReportsSalesIdRoute = ReportsSalesIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/inventory/$id': typeof InventoryIdRoute
   '/inventory/new': typeof InventoryNewRoute
   '/shops/$id': typeof ShopsIdRoute
   '/shops/new': typeof ShopsNewRoute
+  '/stores/new': typeof StoresNewRoute
   '/inventory': typeof InventoryIndexRoute
   '/shops': typeof ShopsIndexRoute
   '/reports/sales/$id': typeof ReportsSalesIdRoute
@@ -99,10 +113,12 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/inventory/$id': typeof InventoryIdRoute
   '/inventory/new': typeof InventoryNewRoute
   '/shops/$id': typeof ShopsIdRoute
   '/shops/new': typeof ShopsNewRoute
+  '/stores/new': typeof StoresNewRoute
   '/inventory': typeof InventoryIndexRoute
   '/shops': typeof ShopsIndexRoute
   '/reports/sales/$id': typeof ReportsSalesIdRoute
@@ -114,10 +130,12 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/login': typeof LoginRoute
   '/inventory/$id': typeof InventoryIdRoute
   '/inventory/new': typeof InventoryNewRoute
   '/shops/$id': typeof ShopsIdRoute
   '/shops/new': typeof ShopsNewRoute
+  '/stores/new': typeof StoresNewRoute
   '/inventory/': typeof InventoryIndexRoute
   '/shops/': typeof ShopsIndexRoute
   '/reports/sales/$id': typeof ReportsSalesIdRoute
@@ -130,10 +148,12 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/login'
     | '/inventory/$id'
     | '/inventory/new'
     | '/shops/$id'
     | '/shops/new'
+    | '/stores/new'
     | '/inventory'
     | '/shops'
     | '/reports/sales/$id'
@@ -144,10 +164,12 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/login'
     | '/inventory/$id'
     | '/inventory/new'
     | '/shops/$id'
     | '/shops/new'
+    | '/stores/new'
     | '/inventory'
     | '/shops'
     | '/reports/sales/$id'
@@ -158,10 +180,12 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/login'
     | '/inventory/$id'
     | '/inventory/new'
     | '/shops/$id'
     | '/shops/new'
+    | '/stores/new'
     | '/inventory/'
     | '/shops/'
     | '/reports/sales/$id'
@@ -173,10 +197,12 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  LoginRoute: typeof LoginRoute
   InventoryIdRoute: typeof InventoryIdRoute
   InventoryNewRoute: typeof InventoryNewRoute
   ShopsIdRoute: typeof ShopsIdRoute
   ShopsNewRoute: typeof ShopsNewRoute
+  StoresNewRoute: typeof StoresNewRoute
   InventoryIndexRoute: typeof InventoryIndexRoute
   ShopsIndexRoute: typeof ShopsIndexRoute
   ReportsSalesIdRoute: typeof ReportsSalesIdRoute
@@ -188,6 +214,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -207,6 +240,13 @@ declare module '@tanstack/react-router' {
       path: '/inventory'
       fullPath: '/inventory'
       preLoaderRoute: typeof InventoryIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/stores/new': {
+      id: '/stores/new'
+      path: '/stores/new'
+      fullPath: '/stores/new'
+      preLoaderRoute: typeof StoresNewRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/shops/new': {
@@ -277,10 +317,12 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  LoginRoute: LoginRoute,
   InventoryIdRoute: InventoryIdRoute,
   InventoryNewRoute: InventoryNewRoute,
   ShopsIdRoute: ShopsIdRoute,
   ShopsNewRoute: ShopsNewRoute,
+  StoresNewRoute: StoresNewRoute,
   InventoryIndexRoute: InventoryIndexRoute,
   ShopsIndexRoute: ShopsIndexRoute,
   ReportsSalesIdRoute: ReportsSalesIdRoute,

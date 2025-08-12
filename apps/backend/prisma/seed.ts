@@ -1,3 +1,4 @@
+import { matchesGlob } from 'path';
 import prisma from '../src/prisma';
 
 async function main() {
@@ -9,8 +10,14 @@ async function main() {
 
   // Store data
   const stores = [
-    { name: 'Goldfish' },
-    { name: 'Friends Foods' },
+    {
+      name: 'Goldfish',
+      passwordHash: '$2y$10$/ImKXzNYbxvlPFykI8v7x.0DmZnNuGfef/Hfe29g86O8.zvYzShfC'
+    },
+    {
+      name: 'Friends Foods',
+      passwordHash: '$2y$10$/ImKXzNYbxvlPFykI8v7x.0DmZnNuGfef/Hfe29g86O8.zvYzShfC'
+    },
   ];
 
   // Shop data for each store
@@ -48,6 +55,7 @@ async function main() {
     const store = await prisma.store.create({
       data: {
         name: stores[i].name,
+        passwordHash: stores[i].passwordHash,
         products: { create: products[i] },
         shops: { create: shops[i] },
       },

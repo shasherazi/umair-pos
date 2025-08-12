@@ -10,8 +10,11 @@ import {
   Typography,
   Box,
   CircularProgress,
+  Button,
+  Stack,
 } from "@mui/material";
 import LoginIcon from "@mui/icons-material/Login";
+import AddIcon from "@mui/icons-material/Add";
 import { useEffect } from "react";
 
 const fetchStores = async () => {
@@ -71,8 +74,9 @@ function Index() {
                 edge="end"
                 aria-label="login"
                 onClick={() => {
-                  setActiveStore(store, () => {
-                    navigate({ to: "/reports/sales" });
+                  navigate({
+                    to: "/login",
+                    search: { storeId: String(store.id) },
                   });
                 }}
               >
@@ -84,6 +88,15 @@ function Index() {
           </ListItem>
         ))}
       </List>
+      <Stack direction="row" justifyContent="center" mt={2}>
+        <Button
+          variant="contained"
+          startIcon={<AddIcon />}
+          onClick={() => navigate({ to: "/stores/new" })}
+        >
+          Add Store
+        </Button>
+      </Stack>
     </Box>
   );
 }

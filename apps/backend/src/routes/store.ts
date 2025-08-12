@@ -1,13 +1,22 @@
 import { Router } from 'express';
 import prisma from '../prisma';
 import { storeCreateSchema } from '@shared/validation/store';
+import bcrypt from "bcryptjs";
 
 const router = Router();
 
 // Get all stores
 router.get('/', async (req, res) => {
   try {
-    const stores = await prisma.store.findMany();
+    const stores = await prisma.store.findMany(
+      {
+        select: {
+          id: true,
+          name: true,
+          createdAt: true,
+        },
+      }
+    );
     res.json(stores);
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });
@@ -21,7 +30,14 @@ router.get('/:id', async (req, res) => {
     return res.status(400).json({ error: 'Invalid store ID' });
   }
   try {
-    const store = await prisma.store.findUnique({ where: { id } });
+    const store = await prisma.store.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        name: true,
+        createdAt: true,
+      }
+    });
     if (!store) return res.status(404).json({ error: 'Store not found' });
     res.json(store);
   } catch (error) {
@@ -29,18 +45,42 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// Create a new store
-router.post('/', async (req, res) => {
-  const parseResult = storeCreateSchema.safeParse(req.body);
+router.post("/login", async (req, res) => {
+  const { storeId, password } = req.body;
+  if (!storeId || !password) {
+    return res.status(400).json({ error: "storeId and password are required" });
+  }
+  const store = await prisma.store.findUnique({ where: { id: Number(storeId) } });
+  if (!store) return res.status(404).json({ error: "Store not found" });
 
+  const bcrypt = require("bcryptjs");
+  const valid = await bcrypt.compare(password, store.passwordHash);
+  if (!valid) return res.status(401).json({ error: "Invalid password" });
+
+  // Don't return passwordHash
+  const { passwordHash, ...storeData } = store;
+  res.json(storeData);
+});
+
+// POST create new store
+router.post("/", async (req, res) => {
+  const parseResult = storeCreateSchema.safeParse(req.body);
   if (!parseResult.success) {
     return res.status(400).json({ error: parseResult.error.issues });
   }
+  const { name, password } = parseResult.data;
 
-  const { name } = parseResult.data;
   try {
-    const store = await prisma.store.create({ data: { name } });
-    res.status(201).json(store);
+    const passwordHash = await bcrypt.hash(password, 10);
+    const store = await prisma.store.create({
+      data: {
+        name,
+        passwordHash,
+      },
+    });
+    // Do not return passwordHash in response
+    const { passwordHash: _, ...storeWithoutHash } = store;
+    res.status(201).json(storeWithoutHash);
   } catch (error) {
     res.status(400).json({ error: (error as Error).message });
   }
