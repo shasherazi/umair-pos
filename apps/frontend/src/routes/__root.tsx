@@ -17,7 +17,7 @@ export const Route = createRootRoute({
     const navigate = useNavigate();
 
     useEffect(() => {
-      const publicRoutes = ["/", "/login"];
+      const publicRoutes = ["/", "/login", "/stores/new"];
       // If not logged in and not on a public route, redirect to root
       if (!activeStore && !publicRoutes.includes(router.location.pathname)) {
         navigate({ to: "/" });

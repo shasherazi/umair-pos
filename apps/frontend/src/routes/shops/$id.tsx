@@ -23,6 +23,7 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import { shopPatchSchema } from "@shared/validation/shop";
+import { useAdminGuard } from "../../hooks/useAdminGuard";
 
 // Fetch shop details and sales stats
 const fetchShopDetails = async (storeId: number, shopId: number) => {
@@ -50,6 +51,7 @@ const fetchShopDetails = async (storeId: number, shopId: number) => {
 };
 
 function ShopDetailsPage() {
+  useAdminGuard();
   const { activeStore } = useStore();
   const { id } = useParams({ from: "/shops/$id" });
   const navigate = useNavigate();

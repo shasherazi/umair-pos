@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import prisma from '../prisma';
-import { productCreateSchema } from '@shared/validation/product';
+import { productCreateSchema, productPatchSchema } from '@shared/validation/product';
 import { getDateRange } from '@shared/utils/getDateRange';
+
 
 const router = Router();
 
@@ -133,14 +134,20 @@ router.post('/', async (req, res) => {
 });
 
 
+
 // PATCH /api/products/:id
 router.patch("/:id", async (req, res) => {
   const productId = Number(req.params.id);
-  const { price, stockChange } = req.body;
 
   if (isNaN(productId)) {
     return res.status(400).json({ error: "Invalid product ID" });
   }
+
+  const parseResult = productPatchSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    return res.status(400).json({ error: parseResult.error.issues });
+  }
+  const { price, stockChange } = parseResult.data;
 
   try {
     // Fetch current product
@@ -154,27 +161,14 @@ router.patch("/:id", async (req, res) => {
 
     // Price update
     if (price !== undefined) {
-      if (typeof price !== "number" || price < 0) {
-        return res.status(400).json({ error: "Invalid price" });
-      }
       updateData.price = price;
     }
 
-    // Stock change
+    // Stock change (only allow positive)
     if (stockChange !== undefined) {
-      if (typeof stockChange !== "number" || !Number.isInteger(stockChange)) {
-        return res.status(400).json({ error: "Invalid stock change" });
-      }
-      const newStock = product.stock + stockChange;
-      if (newStock < 0) {
-        return res.status(400).json({
-          error: `Cannot reduce stock below zero. Current stock: ${product.stock}`,
-        });
-      }
-      updateData.stock = newStock;
+      updateData.stock = product.stock + stockChange;
     }
 
-    // If nothing to update
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({ error: "No valid fields to update" });
     }

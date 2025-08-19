@@ -2,9 +2,9 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStore } from "../../context/StoreContext";
 import {
-  productCreateSchema,
-  type ProductCreateInput,
-} from "@shared/validation/product";
+  salesmanCreateSchema,
+  type SalesmanCreateInput,
+} from "@shared/validation/salesman";
 import {
   Box,
   Typography,
@@ -17,7 +17,7 @@ import {
 import { useState } from "react";
 import { useAdminGuard } from "../../hooks/useAdminGuard";
 
-function NewProduct() {
+function NewSalesman() {
   useAdminGuard();
   const { activeStore } = useStore();
   const navigate = useNavigate();
@@ -25,8 +25,6 @@ function NewProduct() {
 
   const [form, setForm] = useState({
     name: "",
-    price: "",
-    stock: "",
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -35,37 +33,35 @@ function NewProduct() {
       if (!activeStore) throw new Error("No store selected");
 
       // Prepare and validate payload
-      const payload: ProductCreateInput = {
+      const payload: SalesmanCreateInput = {
         name: form.name.trim(),
-        price: Number(form.price),
         storeId: activeStore.id,
-        ...(form.stock !== "" ? { stock: Number(form.stock) } : {}),
       };
 
-      const parseResult = productCreateSchema.safeParse(payload);
+      const parseResult = salesmanCreateSchema.safeParse(payload);
       if (!parseResult.success) {
         throw new Error(
           parseResult.error.issues.map((i) => i.message).join(", "),
         );
       }
 
-      const res = await fetch("http://localhost:3001/api/products", {
+      const res = await fetch("http://localhost:3001/api/salesmen", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const err = await res.json();
-        throw new Error(err.error || "Failed to add product");
+        throw new Error(err.error || "Failed to add salesman");
       }
       return res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["productSales"] });
-      navigate({ to: "/inventory" });
+      queryClient.invalidateQueries({ queryKey: ["salesmen"] });
+      navigate({ to: "/salesmen" });
     },
     onError: (err: any) => {
-      setError(err.message || "Failed to add product");
+      setError(err.message || "Failed to add salesman");
     },
   });
 
@@ -81,32 +77,15 @@ function NewProduct() {
     <Box sx={{ maxWidth: 500, mx: "auto", mt: 4, p: 2 }}>
       <Paper sx={{ p: 3 }}>
         <Typography variant="h5" mb={2}>
-          Add New Product to {activeStore?.name}
+          Add New Salesman to {activeStore?.name}
         </Typography>
         <Stack spacing={2}>
           <TextField
-            label="Product Name"
+            label="Salesman Name"
             name="name"
             value={form.name}
             onChange={handleChange}
             required
-          />
-          <TextField
-            label="Price"
-            name="price"
-            type="number"
-            value={form.price}
-            onChange={handleChange}
-            required
-            slotProps={{ htmlInput: { min: 0 } }}
-          />
-          <TextField
-            label="Stock (optional)"
-            name="stock"
-            type="number"
-            value={form.stock}
-            onChange={handleChange}
-            slotProps={{ htmlInput: { min: 0 } }}
           />
           {error && <Alert severity="error">{error}</Alert>}
           <Button
@@ -115,7 +94,7 @@ function NewProduct() {
             disabled={mutation.isPending}
             onClick={() => mutation.mutate()}
           >
-            {mutation.isPending ? "Adding..." : "Add Product"}
+            {mutation.isPending ? "Adding..." : "Add Salesman"}
           </Button>
         </Stack>
       </Paper>
@@ -123,6 +102,6 @@ function NewProduct() {
   );
 }
 
-export const Route = createFileRoute("/inventory/new")({
-  component: NewProduct,
+export const Route = createFileRoute("/salesmen/new")({
+  component: NewSalesman,
 });

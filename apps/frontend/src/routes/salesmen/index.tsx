@@ -18,23 +18,25 @@ import {
 import AddIcon from "@mui/icons-material/Add";
 import { useAdminGuard } from "../../hooks/useAdminGuard";
 
-const fetchShops = async (storeId: number) => {
-  const res = await fetch(`http://localhost:3001/api/stores/${storeId}/shops`);
+const fetchSalesmen = async (storeId: number) => {
+  const res = await fetch(
+    `http://localhost:3001/api/stores/${storeId}/salesmen`,
+  );
   return res.json();
 };
 
-function ShopsPage() {
+function SalesmenPage() {
   useAdminGuard();
   const { activeStore } = useStore();
   const navigate = useNavigate();
 
   const {
-    data: shops,
+    data: salesmen,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["shops", activeStore?.id],
-    queryFn: () => fetchShops(activeStore!.id),
+    queryKey: ["salesmen", activeStore?.id],
+    queryFn: () => fetchSalesmen(activeStore!.id),
     enabled: !!activeStore,
   });
 
@@ -46,55 +48,57 @@ function ShopsPage() {
         alignItems="flex-end"
         mb={2}
       >
-        <Typography variant="h5"> Shops </Typography>
+        <Typography variant="h5">Salesmen</Typography>
         <Button
           variant="contained"
           color="primary"
           startIcon={<AddIcon />}
-          onClick={() => navigate({ to: "/shops/new" })}
+          onClick={() => navigate({ to: "/salesmen/new" })}
         >
-          Add new shop
+          Add new salesman
         </Button>
       </Stack>
 
       {isLoading ? (
         <CircularProgress />
       ) : error ? (
-        <Typography color="error"> Error loading shops </Typography>
-      ) : !shops || shops.length === 0 ? (
-        <Typography>No shops found.</Typography>
+        <Typography color="error">Error loading salesmen</Typography>
+      ) : !salesmen || salesmen.length === 0 ? (
+        <Typography>No salesmen found.</Typography>
       ) : (
         <TableContainer component={Paper}>
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Shop Name </TableCell>
-                <TableCell> Total Cash Paid </TableCell>
-                <TableCell> Total Credit </TableCell>
-                <TableCell> First Sale Date </TableCell>
+                <TableCell>Salesman Name</TableCell>
+                <TableCell>Total Units Sold</TableCell>
+                <TableCell>Total Sales Made</TableCell>
+                <TableCell>Total Credit Remaining</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {shops.map((shop: any) => (
+              {salesmen.map((salesman: any) => (
                 <TableRow
-                  key={shop.id}
-                  onClick={() => navigate({ to: `/shops/${shop.id}` })}
+                  key={salesman.id}
+                  onClick={() => navigate({ to: `/salesmen/${salesman.id}` })}
                   sx={{
                     cursor: "pointer",
                     "&:hover": { backgroundColor: "#f5f5f5" },
                   }}
                 >
-                  <TableCell>{shop.name} </TableCell>
+                  <TableCell>{salesman.name}</TableCell>
+                  <TableCell>{salesman.unitsSold}</TableCell>
                   <TableCell>
-                    Rs. {shop.cashPaid ? shop.cashPaid.toFixed(2) : "0.00"}
+                    Rs.{" "}
+                    {salesman.totalSales
+                      ? salesman.totalSales.toFixed(2)
+                      : "0.00"}
                   </TableCell>
                   <TableCell>
-                    Rs. {shop.credit ? shop.credit.toFixed(2) : "0.00"}
-                  </TableCell>
-                  <TableCell>
-                    {shop.firstSaleDate
-                      ? new Date(shop.firstSaleDate).toLocaleString()
-                      : "-"}
+                    Rs.{" "}
+                    {salesman.totalCredit
+                      ? salesman.totalCredit.toFixed(2)
+                      : "0.00"}
                   </TableCell>
                 </TableRow>
               ))}
@@ -106,6 +110,6 @@ function ShopsPage() {
   );
 }
 
-export const Route = createFileRoute("/shops/")({
-  component: ShopsPage,
+export const Route = createFileRoute("/salesmen/")({
+  component: SalesmenPage,
 });

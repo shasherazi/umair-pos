@@ -86,7 +86,15 @@ router.post('/', async (req, res) => {
     return res.status(400).json({ error: parseResult.error.issues });
   }
 
-  const { storeId, shopId, items, discount = 0, saleTime, saleType = "CASH" } = parseResult.data;
+  const {
+    storeId,
+    shopId,
+    salesmanId,
+    items,
+    discount = 0,
+    saleTime,
+    saleType = "CASH",
+  } = parseResult.data;
 
   try {
     // Fetch all products in one query
@@ -133,6 +141,7 @@ router.post('/', async (req, res) => {
         data: {
           storeId,
           shopId,
+          salesmanId,
           saleTime: saleTime ? new Date(saleTime) : new Date(),
           discount,
           total,

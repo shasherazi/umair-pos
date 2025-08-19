@@ -18,8 +18,10 @@ import {
 import { useState } from "react";
 import Visibility from "@mui/icons-material/Visibility";
 import VisibilityOff from "@mui/icons-material/VisibilityOff";
+import { useAdminGuard } from "../../hooks/useAdminGuard";
 
 function NewStore() {
+  useAdminGuard();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 

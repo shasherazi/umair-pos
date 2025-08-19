@@ -124,4 +124,62 @@ router.get('/:id/shops', async (req, res) => {
   }
 });
 
+// Get salesmen under a store, with total sales, total credit, and units sold
+router.get('/:id/salesmen', async (req, res) => {
+  const id = Number(req.params.id);
+
+  if (isNaN(id)) {
+    return res.status(400).json({ error: 'Invalid store ID' });
+  }
+
+  try {
+    // Get all salesmen for the store
+    const salesmen = await prisma.salesman.findMany({
+      where: { storeId: id },
+    });
+
+    // For each salesman, calculate total sales, total credit, and units sold
+    const result = await Promise.all(
+      salesmen.map(async (salesman) => {
+        // Get all sales for this salesman, including sale items
+        const sales = await prisma.sale.findMany({
+          where: { salesmanId: salesman.id },
+          select: {
+            total: true,
+            saleType: true,
+            saleItems: {
+              select: {
+                quantity: true,
+              },
+            },
+          },
+        });
+
+        let totalSales = 0;
+        let totalCredit = 0;
+        let unitsSold = 0;
+        for (const sale of sales) {
+          totalSales += sale.total;
+          if (sale.saleType === "CREDIT") {
+            totalCredit += sale.total;
+          }
+          unitsSold += sale.saleItems.reduce((sum, item) => sum + item.quantity, 0);
+        }
+
+        return {
+          id: salesman.id,
+          name: salesman.name,
+          totalSales,
+          totalCredit,
+          unitsSold,
+        };
+      })
+    );
+
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ error: (error as Error).message });
+  }
+});
+
 export default router;

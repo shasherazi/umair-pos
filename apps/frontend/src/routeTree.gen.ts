@@ -12,12 +12,16 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ShopsIndexRouteImport } from './routes/shops/index'
+import { Route as SalesmenIndexRouteImport } from './routes/salesmen/index'
 import { Route as InventoryIndexRouteImport } from './routes/inventory/index'
 import { Route as StoresNewRouteImport } from './routes/stores/new'
 import { Route as ShopsNewRouteImport } from './routes/shops/new'
 import { Route as ShopsIdRouteImport } from './routes/shops/$id'
+import { Route as SalesmenNewRouteImport } from './routes/salesmen/new'
+import { Route as SalesmenIdRouteImport } from './routes/salesmen/$id'
 import { Route as InventoryNewRouteImport } from './routes/inventory/new'
 import { Route as InventoryIdRouteImport } from './routes/inventory/$id'
+import { Route as AdminUnlockRouteImport } from './routes/admin/unlock'
 import { Route as ReportsShopsIndexRouteImport } from './routes/reports/shops/index'
 import { Route as ReportsSalesIndexRouteImport } from './routes/reports/sales/index'
 import { Route as ReportsProductsIndexRouteImport } from './routes/reports/products/index'
@@ -37,6 +41,11 @@ const IndexRoute = IndexRouteImport.update({
 const ShopsIndexRoute = ShopsIndexRouteImport.update({
   id: '/shops/',
   path: '/shops/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SalesmenIndexRoute = SalesmenIndexRouteImport.update({
+  id: '/salesmen/',
+  path: '/salesmen/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const InventoryIndexRoute = InventoryIndexRouteImport.update({
@@ -59,6 +68,16 @@ const ShopsIdRoute = ShopsIdRouteImport.update({
   path: '/shops/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SalesmenNewRoute = SalesmenNewRouteImport.update({
+  id: '/salesmen/new',
+  path: '/salesmen/new',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SalesmenIdRoute = SalesmenIdRouteImport.update({
+  id: '/salesmen/$id',
+  path: '/salesmen/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const InventoryNewRoute = InventoryNewRouteImport.update({
   id: '/inventory/new',
   path: '/inventory/new',
@@ -67,6 +86,11 @@ const InventoryNewRoute = InventoryNewRouteImport.update({
 const InventoryIdRoute = InventoryIdRouteImport.update({
   id: '/inventory/$id',
   path: '/inventory/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminUnlockRoute = AdminUnlockRouteImport.update({
+  id: '/admin/unlock',
+  path: '/admin/unlock',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ReportsShopsIndexRoute = ReportsShopsIndexRouteImport.update({
@@ -98,12 +122,16 @@ const ReportsSalesIdRoute = ReportsSalesIdRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/admin/unlock': typeof AdminUnlockRoute
   '/inventory/$id': typeof InventoryIdRoute
   '/inventory/new': typeof InventoryNewRoute
+  '/salesmen/$id': typeof SalesmenIdRoute
+  '/salesmen/new': typeof SalesmenNewRoute
   '/shops/$id': typeof ShopsIdRoute
   '/shops/new': typeof ShopsNewRoute
   '/stores/new': typeof StoresNewRoute
   '/inventory': typeof InventoryIndexRoute
+  '/salesmen': typeof SalesmenIndexRoute
   '/shops': typeof ShopsIndexRoute
   '/reports/sales/$id': typeof ReportsSalesIdRoute
   '/reports/sales/new': typeof ReportsSalesNewRoute
@@ -114,12 +142,16 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/admin/unlock': typeof AdminUnlockRoute
   '/inventory/$id': typeof InventoryIdRoute
   '/inventory/new': typeof InventoryNewRoute
+  '/salesmen/$id': typeof SalesmenIdRoute
+  '/salesmen/new': typeof SalesmenNewRoute
   '/shops/$id': typeof ShopsIdRoute
   '/shops/new': typeof ShopsNewRoute
   '/stores/new': typeof StoresNewRoute
   '/inventory': typeof InventoryIndexRoute
+  '/salesmen': typeof SalesmenIndexRoute
   '/shops': typeof ShopsIndexRoute
   '/reports/sales/$id': typeof ReportsSalesIdRoute
   '/reports/sales/new': typeof ReportsSalesNewRoute
@@ -131,12 +163,16 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/login': typeof LoginRoute
+  '/admin/unlock': typeof AdminUnlockRoute
   '/inventory/$id': typeof InventoryIdRoute
   '/inventory/new': typeof InventoryNewRoute
+  '/salesmen/$id': typeof SalesmenIdRoute
+  '/salesmen/new': typeof SalesmenNewRoute
   '/shops/$id': typeof ShopsIdRoute
   '/shops/new': typeof ShopsNewRoute
   '/stores/new': typeof StoresNewRoute
   '/inventory/': typeof InventoryIndexRoute
+  '/salesmen/': typeof SalesmenIndexRoute
   '/shops/': typeof ShopsIndexRoute
   '/reports/sales/$id': typeof ReportsSalesIdRoute
   '/reports/sales/new': typeof ReportsSalesNewRoute
@@ -149,12 +185,16 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/login'
+    | '/admin/unlock'
     | '/inventory/$id'
     | '/inventory/new'
+    | '/salesmen/$id'
+    | '/salesmen/new'
     | '/shops/$id'
     | '/shops/new'
     | '/stores/new'
     | '/inventory'
+    | '/salesmen'
     | '/shops'
     | '/reports/sales/$id'
     | '/reports/sales/new'
@@ -165,12 +205,16 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/login'
+    | '/admin/unlock'
     | '/inventory/$id'
     | '/inventory/new'
+    | '/salesmen/$id'
+    | '/salesmen/new'
     | '/shops/$id'
     | '/shops/new'
     | '/stores/new'
     | '/inventory'
+    | '/salesmen'
     | '/shops'
     | '/reports/sales/$id'
     | '/reports/sales/new'
@@ -181,12 +225,16 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/login'
+    | '/admin/unlock'
     | '/inventory/$id'
     | '/inventory/new'
+    | '/salesmen/$id'
+    | '/salesmen/new'
     | '/shops/$id'
     | '/shops/new'
     | '/stores/new'
     | '/inventory/'
+    | '/salesmen/'
     | '/shops/'
     | '/reports/sales/$id'
     | '/reports/sales/new'
@@ -198,12 +246,16 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   LoginRoute: typeof LoginRoute
+  AdminUnlockRoute: typeof AdminUnlockRoute
   InventoryIdRoute: typeof InventoryIdRoute
   InventoryNewRoute: typeof InventoryNewRoute
+  SalesmenIdRoute: typeof SalesmenIdRoute
+  SalesmenNewRoute: typeof SalesmenNewRoute
   ShopsIdRoute: typeof ShopsIdRoute
   ShopsNewRoute: typeof ShopsNewRoute
   StoresNewRoute: typeof StoresNewRoute
   InventoryIndexRoute: typeof InventoryIndexRoute
+  SalesmenIndexRoute: typeof SalesmenIndexRoute
   ShopsIndexRoute: typeof ShopsIndexRoute
   ReportsSalesIdRoute: typeof ReportsSalesIdRoute
   ReportsSalesNewRoute: typeof ReportsSalesNewRoute
@@ -235,6 +287,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShopsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/salesmen/': {
+      id: '/salesmen/'
+      path: '/salesmen'
+      fullPath: '/salesmen'
+      preLoaderRoute: typeof SalesmenIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/inventory/': {
       id: '/inventory/'
       path: '/inventory'
@@ -263,6 +322,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShopsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/salesmen/new': {
+      id: '/salesmen/new'
+      path: '/salesmen/new'
+      fullPath: '/salesmen/new'
+      preLoaderRoute: typeof SalesmenNewRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/salesmen/$id': {
+      id: '/salesmen/$id'
+      path: '/salesmen/$id'
+      fullPath: '/salesmen/$id'
+      preLoaderRoute: typeof SalesmenIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/inventory/new': {
       id: '/inventory/new'
       path: '/inventory/new'
@@ -275,6 +348,13 @@ declare module '@tanstack/react-router' {
       path: '/inventory/$id'
       fullPath: '/inventory/$id'
       preLoaderRoute: typeof InventoryIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin/unlock': {
+      id: '/admin/unlock'
+      path: '/admin/unlock'
+      fullPath: '/admin/unlock'
+      preLoaderRoute: typeof AdminUnlockRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reports/shops/': {
@@ -318,12 +398,16 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   LoginRoute: LoginRoute,
+  AdminUnlockRoute: AdminUnlockRoute,
   InventoryIdRoute: InventoryIdRoute,
   InventoryNewRoute: InventoryNewRoute,
+  SalesmenIdRoute: SalesmenIdRoute,
+  SalesmenNewRoute: SalesmenNewRoute,
   ShopsIdRoute: ShopsIdRoute,
   ShopsNewRoute: ShopsNewRoute,
   StoresNewRoute: StoresNewRoute,
   InventoryIndexRoute: InventoryIndexRoute,
+  SalesmenIndexRoute: SalesmenIndexRoute,
   ShopsIndexRoute: ShopsIndexRoute,
   ReportsSalesIdRoute: ReportsSalesIdRoute,
   ReportsSalesNewRoute: ReportsSalesNewRoute,

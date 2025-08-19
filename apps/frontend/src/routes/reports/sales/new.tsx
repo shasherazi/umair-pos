@@ -26,7 +26,7 @@ import {
   FormLabel,
 } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 const fetchProducts = async (storeId: number) => {
   const res = await fetch(
@@ -37,6 +37,13 @@ const fetchProducts = async (storeId: number) => {
 
 const fetchShops = async (storeId: number) => {
   const res = await fetch(`http://localhost:3001/api/stores/${storeId}/shops`);
+  return res.json();
+};
+
+const fetchSalesmen = async (storeId: number) => {
+  const res = await fetch(
+    `http://localhost:3001/api/stores/${storeId}/salesmen`,
+  );
   return res.json();
 };
 
@@ -51,6 +58,10 @@ function NewSale() {
   const [inputValue, setInputValue] = useState(""); // For product Autocomplete
   const [selectedShop, setSelectedShop] = useState<any | null>(null);
   const [shopInputValue, setShopInputValue] = useState(""); // For shop Autocomplete
+  const [selectedSalesman, setSelectedSalesman] = useState<any | null>(null);
+  const [salesmanInputValue, setSalesmanInputValue] = useState(""); // For salesman Autocomplete
+
+  const productSelectorRef = useRef<HTMLDivElement>(null);
 
   // Fetch products for the active store
   const { data: products, isLoading: productsLoading } = useQuery({
@@ -66,6 +77,13 @@ function NewSale() {
     enabled: !!activeStore,
   });
 
+  // Fetch salesmen for the active store
+  const { data: salesmen, isLoading: salesmenLoading } = useQuery({
+    queryKey: ["salesmen", activeStore?.id],
+    queryFn: () => fetchSalesmen(activeStore!.id),
+    enabled: !!activeStore,
+  });
+
   // Add product to selected list
   const handleAddProduct = (product: any) => {
     if (!selectedProducts.find((p) => p.id === product.id)) {
@@ -73,6 +91,9 @@ function NewSale() {
         ...selectedProducts,
         { ...product, quantity: 1, salePrice: product.price },
       ]);
+      setTimeout(() => {
+        productSelectorRef.current?.scrollIntoView({ behavior: "smooth" });
+      }, 100); // slight delay to ensure DOM update
     }
   };
 
@@ -101,10 +122,12 @@ function NewSale() {
   const mutation = useMutation({
     mutationFn: async () => {
       if (!selectedShop) throw new Error("Shop is required");
+      if (!selectedSalesman) throw new Error("Salesman is required");
 
       const payload: SaleCreateInput = {
         storeId: activeStore!.id,
         shopId: selectedShop.id,
+        salesmanId: selectedSalesman.id,
         items: selectedProducts.map((p) => ({
           productId: p.id,
           quantity: p.quantity,
@@ -145,6 +168,31 @@ function NewSale() {
         Add Sale for {activeStore?.name}
       </Typography>
 
+      {/* Salesman Selector */}
+      <Autocomplete
+        options={salesmen || []}
+        getOptionLabel={(option: any) => option.name}
+        loading={salesmenLoading}
+        value={selectedSalesman}
+        onChange={(_, value) => setSelectedSalesman(value)}
+        inputValue={salesmanInputValue}
+        onInputChange={(_, newInputValue) =>
+          setSalesmanInputValue(newInputValue)
+        }
+        clearOnBlur
+        clearOnEscape
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            label="Select salesman"
+            variant="outlined"
+            required
+          />
+        )}
+        sx={{ mb: 2 }}
+      />
+
+      {/* Shop Selector */}
       <Autocomplete
         options={shops || []}
         getOptionLabel={(option: any) => option.name}
@@ -166,28 +214,6 @@ function NewSale() {
         sx={{ mb: 2 }}
       />
 
-      <Autocomplete
-        options={products || []}
-        getOptionLabel={(option: any) => option.name}
-        loading={productsLoading}
-        onChange={(_, value) => {
-          if (value) handleAddProduct(value);
-          setInputValue(""); // Clear search bar after adding
-        }}
-        inputValue={inputValue}
-        onInputChange={(_, newInputValue) => setInputValue(newInputValue)}
-        clearOnBlur
-        clearOnEscape
-        renderInput={(params) => (
-          <TextField
-            {...params}
-            label="Search and add product"
-            variant="outlined"
-          />
-        )}
-        sx={{ mb: 2 }}
-      />
-
       <FormLabel component="legend" sx={{ mt: 2 }}>
         Sale Type
       </FormLabel>
@@ -201,6 +227,7 @@ function NewSale() {
         <FormControlLabel value="CREDIT" control={<Radio />} label="Credit" />
       </RadioGroup>
 
+      {/* Products Table */}
       {selectedProducts.length > 0 && (
         <Paper sx={{ mb: 2 }}>
           <Table>
@@ -280,6 +307,31 @@ function NewSale() {
         </Paper>
       )}
 
+      {/* Product Selector (moved below table) */}
+      <div ref={productSelectorRef}>
+        <Autocomplete
+          options={products || []}
+          getOptionLabel={(option: any) => option.name}
+          loading={productsLoading}
+          onChange={(_, value) => {
+            if (value) handleAddProduct(value);
+            setInputValue(""); // Clear search bar after adding
+          }}
+          inputValue={inputValue}
+          onInputChange={(_, newInputValue) => setInputValue(newInputValue)}
+          clearOnBlur
+          clearOnEscape
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Search and add product"
+              variant="outlined"
+            />
+          )}
+          sx={{ mb: 2 }}
+        />
+      </div>
+
       <Stack direction="row" alignItems="center" spacing={2} mb={2}>
         <TextField
           label="Discount (%)"
@@ -301,6 +353,7 @@ function NewSale() {
         color="primary"
         disabled={
           !selectedShop ||
+          !selectedSalesman ||
           selectedProducts.length === 0 ||
           mutation.isPending ||
           selectedProducts.some(

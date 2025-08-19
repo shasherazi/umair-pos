@@ -5,6 +5,7 @@ import {
 } from "@tanstack/react-router";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useStore } from "../../context/StoreContext";
+import { productPatchSchema } from "@shared/validation/product";
 import {
   Box,
   Typography,
@@ -22,6 +23,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { useState } from "react";
+import { useAdminGuard } from "../../hooks/useAdminGuard";
 
 // Fetch product details and sales stats
 const fetchProductDetails = async (storeId: number, productId: number) => {
@@ -50,6 +52,7 @@ const fetchProductDetails = async (storeId: number, productId: number) => {
 };
 
 function ProductDetailsPage() {
+  useAdminGuard();
   const { activeStore } = useStore();
   const { id } = useParams({ from: "/inventory/$id" });
   const navigate = useNavigate();
@@ -78,18 +81,21 @@ function ProductDetailsPage() {
       const payload: any = {};
       if (price !== "") {
         const priceNum = Number(price);
-        if (isNaN(priceNum) || priceNum < 0) {
-          throw new Error("Invalid price");
-        }
         payload.price = priceNum;
       }
       if (stockChange !== "") {
         const stockNum = Number(stockChange);
-        if (!Number.isInteger(stockNum)) {
-          throw new Error("Stock change must be an integer");
-        }
         payload.stockChange = stockNum;
       }
+
+      // Zod validation
+      const parseResult = productPatchSchema.safeParse(payload);
+      if (!parseResult.success) {
+        throw new Error(
+          parseResult.error.issues.map((i) => i.message).join(", "),
+        );
+      }
+
       if (Object.keys(payload).length === 0) {
         throw new Error("No changes to update");
       }
@@ -171,20 +177,20 @@ function ProductDetailsPage() {
           slotProps={{ htmlInput: { min: 0 } }}
         />
         <TextField
-          label={`Stock Change (current: ${product.stock})`}
+          label={`Add Stock (current: ${product.stock})`}
           type="number"
           value={stockChange}
           onChange={(e) => {
-            // Only allow decrease up to current stock
+            // Only allow positive integers
             const val = Number(e.target.value);
-            if (val < 0 && Math.abs(val) > product.stock) {
-              setStockChange((-product.stock).toString());
+            if (val < 0) {
+              setStockChange("");
             } else {
               setStockChange(e.target.value);
             }
           }}
-          slotProps={{ htmlInput: { step: 1 } }}
-          helperText="Enter positive to add, negative to subtract. Cannot reduce below zero."
+          slotProps={{ htmlInput: { step: 1, min: 1 } }}
+          helperText="Enter a positive integer to add stock."
         />
         {editError && <Alert severity="error">{editError}</Alert>}
         <Button

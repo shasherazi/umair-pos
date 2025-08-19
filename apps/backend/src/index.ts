@@ -8,6 +8,8 @@ import storeRouter from './routes/store';
 import productRouter from './routes/product';
 import saleRouter from './routes/sale';
 import shopRouter from './routes/shop';
+import salesmanRouter from './routes/salesman';
+import adminRouter from './routes/admin';
 
 dotenv.config();
 
@@ -35,6 +37,8 @@ app.use('/api/stores', storeRouter);
 app.use('/api/products', productRouter);
 app.use('/api/sales', saleRouter);
 app.use('/api/shops', shopRouter);
+app.use("/api/salesmen", salesmanRouter);
+app.use('/api/admin', adminRouter);
 
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://localhost:${PORT}`);

@@ -7,4 +7,11 @@ export const productCreateSchema = z.object({
   stock: z.number().int().nonnegative().optional(),
 });
 
+
+export const productPatchSchema = z.object({
+  price: z.number().nonnegative().optional(),
+  stockChange: z.number().int().positive("Stock change must be a positive integer").optional(),
+});
+
+export type ProductPatchInput = z.infer<typeof productPatchSchema>;
 export type ProductCreateInput = z.infer<typeof productCreateSchema>;

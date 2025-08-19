@@ -19,6 +19,7 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { useState } from "react";
+import { useAdminGuard } from "../../../hooks/useAdminGuard";
 
 const PERIOD_OPTIONS = [
   { value: "today", label: "Today" },
@@ -38,6 +39,7 @@ const fetchShopSales = async (storeId: number, period: string) => {
 };
 
 function ShopsReportPage() {
+  useAdminGuard();
   const { activeStore } = useStore();
   const [period, setPeriod] = useState<string>("thismonth");
 

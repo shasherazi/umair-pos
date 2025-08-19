@@ -16,6 +16,7 @@ import {
   Stack,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
+import { useAdminGuard } from "../../hooks/useAdminGuard";
 
 const fetchInventory = async (storeId: number) => {
   const res = await fetch(
@@ -25,6 +26,7 @@ const fetchInventory = async (storeId: number) => {
 };
 
 function InventoryPage() {
+  useAdminGuard();
   const { activeStore } = useStore();
   const navigate = useNavigate();
 

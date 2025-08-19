@@ -113,10 +113,26 @@ export const Navbar: React.FC = () => {
         <Button
           color="inherit"
           component={Link}
+          to="/salesmen"
+          sx={{ textTransform: "none", textDecoration: "underline" }}
+        >
+          Salesmen
+        </Button>
+        <Button
+          color="inherit"
+          component={Link}
           to="/inventory"
           sx={{ textTransform: "none", textDecoration: "underline" }}
         >
           Inventory
+        </Button>
+        <Button
+          color="inherit"
+          component={Link}
+          to="/reports/sales/new"
+          sx={{ textTransform: "none", textDecoration: "underline" }}
+        >
+          Create Invoice
         </Button>
       </Toolbar>
     </AppBar>

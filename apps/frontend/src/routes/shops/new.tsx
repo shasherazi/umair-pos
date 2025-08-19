@@ -15,8 +15,10 @@ import {
   Alert,
 } from "@mui/material";
 import { useState } from "react";
+import { useAdminGuard } from "../../hooks/useAdminGuard";
 
 function NewShop() {
+  useAdminGuard();
   const { activeStore } = useStore();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
