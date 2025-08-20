@@ -25,12 +25,12 @@ async function main() {
   // Shop data for each store
   const shops = [
     [
-      { name: 'Goldfish Downtown' },
-      { name: 'Goldfish Uptown' },
+      { name: 'Goldfish Downtown', address: '123 Main St, Downtown', phone: '123-456-7890' },
+      { name: 'Goldfish Uptown', address: '456 Elm St, Uptown', phone: '987-654-3210' },
     ],
     [
-      { name: 'Friends Foods City Center' },
-      { name: 'Friends Foods Suburb' },
+      { name: 'Friends Foods City Center', address: '789 Market St, City Center', phone: '555-123-4567' },
+      { name: 'Friends Foods Suburb', address: '321 Oak St, Suburb', phone: '555-987-6543' },
     ],
   ];
 

@@ -126,11 +126,13 @@ router.post("/", async (req, res) => {
   if (!parseResult.success) {
     return res.status(400).json({ error: parseResult.error.issues });
   }
-  const { name, storeId } = parseResult.data;
+  const { name, address, phone, storeId } = parseResult.data;
   try {
     const shop = await prisma.shop.create({
       data: {
         name,
+        address,
+        phone,
         storeId,
       },
     });
@@ -148,8 +150,11 @@ router.patch("/:id", async (req, res) => {
     return res.status(400).json({ error: "Invalid shop ID" });
   }
 
-  // Accept both name and creditDecrease in the body
-  const { name, creditDecrease } = req.body;
+  const parseResult = shopPatchSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    return res.status(400).json({ error: parseResult.error.issues });
+  }
+  const { name, address, phone, creditDecrease } = parseResult.data;
 
   // Validate input
   if (name !== undefined && typeof name !== "string") {
@@ -161,6 +166,12 @@ router.patch("/:id", async (req, res) => {
   ) {
     return res.status(400).json({ error: "creditDecrease must be a non-negative number" });
   }
+  if (address !== undefined && typeof address !== "string") {
+    return res.status(400).json({ error: "Address must be a string" });
+  }
+  if (phone !== undefined && typeof phone !== "string") {
+    return res.status(400).json({ error: "Phone must be a string" });
+  }
 
   try {
     const shop = await prisma.shop.findUnique({ where: { id: shopId } });
@@ -168,9 +179,14 @@ router.patch("/:id", async (req, res) => {
 
     // Prepare update data
     const updateData: any = {};
-
     if (name !== undefined && name.trim() !== "" && name !== shop.name) {
       updateData.name = name.trim();
+    }
+    if (address !== undefined && address.trim() !== "" && address !== shop.address) {
+      updateData.address = address.trim();
+    }
+    if (phone !== undefined && phone.trim() !== "" && phone !== shop.phone) {
+      updateData.phone = phone.trim();
     }
 
     if (creditDecrease !== undefined && creditDecrease > 0) {

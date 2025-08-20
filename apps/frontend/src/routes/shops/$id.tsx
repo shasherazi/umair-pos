@@ -71,6 +71,8 @@ function ShopDetailsPage() {
 
   // Form state
   const [name, setName] = useState<string>("");
+  const [address, setAddress] = useState<string>("");
+  const [phone, setPhone] = useState<string>("");
   const [creditDecrease, setCreditDecrease] = useState<string>("");
   const [editError, setEditError] = useState<string | null>(null);
 
@@ -78,9 +80,12 @@ function ShopDetailsPage() {
   const mutation = useMutation({
     mutationFn: async () => {
       const payload: any = {};
-      if (name !== "" && name !== shop.name) {
-        payload.name = name.trim();
-      }
+
+      if (name !== "" && name !== shop.name) payload.name = name.trim();
+      if (address !== "" && address !== shop.address)
+        payload.address = address.trim();
+      if (phone !== "" && phone !== shop.phone) payload.phone = phone.trim();
+
       if (creditDecrease !== "") {
         const creditNum = Number(creditDecrease);
         const parseResult = shopPatchSchema.safeParse({
@@ -125,7 +130,7 @@ function ShopDetailsPage() {
     return <Typography color="error">Shop not found.</Typography>;
 
   return (
-    <Box sx={{ maxWidth: 900, mx: "auto", mt: 4, p: 2 }}>
+    <Box sx={{ mx: "auto", mt: 4, p: 2 }}>
       <Typography variant="h5" mb={2}>
         Shop Details
       </Typography>
@@ -134,6 +139,8 @@ function ShopDetailsPage() {
           <TableHead>
             <TableRow>
               <TableCell>Shop Name</TableCell>
+              <TableCell>Address</TableCell>
+              <TableCell>Phone Number</TableCell>
               <TableCell>Units Sold</TableCell>
               <TableCell>Money Made</TableCell>
               <TableCell>Most Sold Item</TableCell>
@@ -145,6 +152,8 @@ function ShopDetailsPage() {
           <TableBody>
             <TableRow>
               <TableCell>{shop.name}</TableCell>
+              <TableCell>{shop.address}</TableCell>
+              <TableCell>{shop.phone}</TableCell>
               <TableCell>{shop.unitsSold ?? 0}</TableCell>
               <TableCell>
                 Rs. {shop.amountMade ? shop.amountMade.toFixed(2) : "0.00"}
@@ -177,6 +186,18 @@ function ShopDetailsPage() {
           value={name}
           onChange={(e) => setName(e.target.value)}
           placeholder={shop.name}
+        />
+        <TextField
+          label="Address"
+          value={address}
+          onChange={(e) => setAddress(e.target.value)}
+          placeholder={shop.address}
+        />
+        <TextField
+          label="Phone Number"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+          placeholder={shop.phone}
         />
         <TextField
           label={`Decrease Credit (current: Rs. ${shop.credit ? shop.credit.toFixed(2) : "0.00"})`}

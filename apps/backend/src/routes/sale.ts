@@ -1,6 +1,8 @@
 import { Router } from 'express';
+import PDFDocument from "pdfkit";
 import prisma from '../prisma';
 import { saleCreateSchema } from '@shared/validation/sale';
+import { formatDateTime } from '@shared/utils/formatDateTimeForInvoice';
 
 const router = Router();
 
@@ -74,6 +76,120 @@ router.get('/:id', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });
   }
+});
+
+router.get("/:id/invoice-pdf", async (req, res) => {
+  const saleId = Number(req.params.id);
+  if (isNaN(saleId)) {
+    return res.status(400).json({ error: "Invalid sale ID" });
+  }
+
+  // Fetch sale with store information
+  const sale = await prisma.sale.findUnique({
+    where: { id: saleId },
+    include: { store: true, shop: true, salesman: true },
+  });
+  if (!sale || !sale.store) {
+    return res.status(404).json({ error: "Sale or store not found" });
+  }
+
+  // Set headers for PDF download
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="invoice-${saleId}.pdf"`
+  );
+
+
+  // Create PDF
+  const doc = new PDFDocument({ size: "A4", margin: 20 });
+  const pageWidth = doc.page.width;
+  const margin = doc.page.margins.left;
+
+  const storeNameFontSize = 20;
+  const storeAddressFontSize = 12;
+  const shopNameFontSize = 10;
+  const shopAddressFontSize = 10;
+  const shopDataMaxWidth = 200;
+  const invoiceNumberFontSize = 10;
+  const saleDateFontSize = 10;
+  const salesManFontSize = 10;
+
+  const lineLength = pageWidth / 3;
+  const leftLineX = margin;
+  const rightLineX = pageWidth - margin - lineLength;
+  const signatureLabelFontSize = 8;
+
+  // Store name (centered, large font)
+  doc.fontSize(storeNameFontSize)
+    .font("Helvetica-Bold")
+    .text(sale.store.name, { align: "center" });
+
+  // Store address (centered, smaller font, below name)
+  doc.font("Helvetica")
+    .fontSize(storeAddressFontSize)
+    .text(sale.store.address, { align: "center" });
+
+  doc.moveDown(0.5);
+  let currentY = doc.y;
+
+  doc.fontSize(shopNameFontSize)
+    .text(sale.shop.name, margin, currentY, { width: shopDataMaxWidth, align: "left" });
+
+  doc.fontSize(invoiceNumberFontSize)
+    .text(
+      `Invoice #${saleId}`,
+      pageWidth - margin - shopDataMaxWidth, // x position for right block
+      currentY,
+      { width: shopDataMaxWidth, align: "right" }
+    );
+
+  currentY = doc.y
+
+  doc.fontSize(shopAddressFontSize)
+    .text(sale.shop.address, margin, doc.y, { width: shopDataMaxWidth, align: "left" });
+
+  doc.fontSize(saleDateFontSize)
+    .text(
+      `Date: ${formatDateTime(sale.saleTime.toISOString())}`,
+      pageWidth - margin - shopDataMaxWidth, // x position for right block
+      currentY,
+      { width: shopDataMaxWidth, align: "right" }
+    );
+
+  currentY = doc.y
+
+  doc.fontSize(salesManFontSize)
+    .text(
+      `Delivery Man: ${sale.salesman.name}`,
+      pageWidth - margin - shopDataMaxWidth, // x position for right block
+      currentY,
+      { width: shopDataMaxWidth, align: "right" }
+    );
+
+
+  // signature lines
+  doc.moveDown(2).fontSize(signatureLabelFontSize)
+    .text(sale.salesman.name, leftLineX, doc.y, { align: "left" });
+
+  doc.moveTo(leftLineX, doc.y)
+    .lineTo(leftLineX + lineLength, doc.y)
+    .stroke();
+
+  currentY = doc.y;
+
+  doc.fontSize(signatureLabelFontSize)
+    .text("Order Booker", leftLineX, doc.y + 2, { align: "left" });
+
+  doc.moveTo(rightLineX, currentY)
+    .lineTo(rightLineX + lineLength, currentY)
+    .stroke();
+
+  doc.fontSize(signatureLabelFontSize)
+    .text("Shopkeeper", rightLineX, currentY + 2, { align: "right" });
+
+  doc.pipe(res);
+  doc.end();
 });
 
 

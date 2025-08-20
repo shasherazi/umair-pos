@@ -1,6 +1,4 @@
 import PrintIcon from "@mui/icons-material/Print";
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
 import {
   createFileRoute,
   useParams,
@@ -54,72 +52,20 @@ function SaleDetails() {
   const grandTotal = totalBeforeDiscount - discountAmount;
 
   const handlePrint = () => {
-    const doc = new jsPDF({
-      orientation: "portrait",
-      unit: "mm",
-      format: "a4",
-    });
-
-    doc.setFontSize(16);
-    doc.text(`Sale Receipt #${sale.id}`, 15, 20);
-    doc.setFontSize(12);
-    doc.text(`Date: ${new Date(sale.saleTime).toLocaleString()}`, 15, 28);
-    doc.text(`Store ID: ${sale.storeId}`, 15, 36);
-
-    // Prepare table data
-    const tableBody = sale.saleItems.map((item: any) => [
-      item.product.name,
-      `Rs. ${item.product.price.toFixed(2)}`,
-      `Rs. ${item.price.toFixed(2)}`,
-      sale.discount > 0
-        ? `Rs. ${(item.price * (1 - sale.discount / 100)).toFixed(2)}`
-        : "-",
-      item.quantity,
-      sale.discount > 0
-        ? `Rs. ${(item.price * item.quantity * (1 - sale.discount / 100)).toFixed(2)}`
-        : `Rs. ${(item.price * item.quantity).toFixed(2)}`,
-    ]);
-
-    autoTable(doc, {
-      startY: 45,
-      head: [
-        [
-          "Product",
-          "Market Price",
-          "Sale Price",
-          "Discounted Price",
-          "Quantity",
-          "Subtotal",
-        ],
-      ],
-      body: tableBody,
-      theme: "grid",
-      styles: { fontSize: 10 },
-      headStyles: { fillColor: [22, 160, 133] },
-    });
-
-    let finalY = doc.lastAutoTable.finalY || 45;
-
-    doc.setFontSize(12);
-    doc.text(
-      `Total (before discount): Rs. ${totalBeforeDiscount.toFixed(2)}`,
-      15,
-      finalY + 10,
-    );
-    if (sale.discount > 0) {
-      doc.text(
-        `Discount (${sale.discount}%): - Rs. ${discountAmount.toFixed(2)}`,
-        15,
-        finalY + 18,
-      );
-    }
-    doc.text(
-      `Grand Total: Rs. ${grandTotal.toFixed(2)}`,
-      15,
-      finalY + (sale.discount > 0 ? 26 : 18),
-    );
-
-    doc.save(`sale-receipt-${sale.id}.pdf`);
+    fetch(`http://localhost:3001/api/sales/${sale.id}/invoice-pdf`, {
+      method: "GET",
+    })
+      .then((res) => res.blob())
+      .then((blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `invoice-${sale.id}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      });
   };
 
   return (

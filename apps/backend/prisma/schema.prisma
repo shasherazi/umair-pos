@@ -23,6 +23,8 @@ model Store {
 model Shop {
   id            Int       @id @default(autoincrement())
   name          String
+  address       String
+  phone         String
   store         Store     @relation(fields: [storeId], references: [id])
   storeId       Int
   sales         Sale[]

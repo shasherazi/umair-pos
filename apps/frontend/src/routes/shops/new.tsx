@@ -25,6 +25,8 @@ function NewShop() {
 
   const [form, setForm] = useState({
     name: "",
+    address: "",
+    phone: "",
   });
   const [error, setError] = useState<string | null>(null);
 
@@ -35,6 +37,8 @@ function NewShop() {
       // Prepare and validate payload
       const payload: ShopCreateInput = {
         name: form.name.trim(),
+        address: form.address.trim(),
+        phone: form.phone.trim(),
         storeId: activeStore.id,
       };
 
@@ -84,6 +88,20 @@ function NewShop() {
             label="Shop Name"
             name="name"
             value={form.name}
+            onChange={handleChange}
+            required
+          />
+          <TextField
+            label="Address"
+            name="address"
+            value={form.address}
+            onChange={handleChange}
+            required
+          />
+          <TextField
+            label="Phone Number"
+            name="phone"
+            value={form.phone}
             onChange={handleChange}
             required
           />
