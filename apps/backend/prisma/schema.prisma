@@ -11,6 +11,7 @@ datasource db {
 model Store {
   id           Int        @id @default(autoincrement())
   name         String     @unique
+  address      String
   passwordHash String
   products     Product[]
   sales        Sale[]
@@ -52,19 +53,19 @@ model Salesman {
 }
 
 model Sale {
-  id        Int        @id @default(autoincrement())
-  store     Store      @relation(fields: [storeId], references: [id])
-  storeId   Int
-  shop      Shop       @relation(fields: [shopId], references: [id])
-  shopId    Int
-  salesman  Salesman   @relation(fields: [salesmanId], references: [id])
+  id         Int        @id @default(autoincrement())
+  store      Store      @relation(fields: [storeId], references: [id])
+  storeId    Int
+  shop       Shop       @relation(fields: [shopId], references: [id])
+  shopId     Int
+  salesman   Salesman   @relation(fields: [salesmanId], references: [id])
   salesmanId Int
-  saleTime  DateTime   @default(now())
-  discount  Float      @default(0)
-  total     Float      @default(0)
-  saleType  SaleType   @default(CASH) // CASH or CREDIT
-  saleItems SaleItem[]
-  createdAt DateTime   @default(now())
+  saleTime   DateTime   @default(now())
+  discount   Float      @default(0)
+  total      Float      @default(0)
+  saleType   SaleType   @default(CASH) // CASH or CREDIT
+  saleItems  SaleItem[]
+  createdAt  DateTime   @default(now())
 }
 
 model SaleItem {

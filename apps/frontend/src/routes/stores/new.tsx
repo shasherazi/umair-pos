@@ -27,6 +27,7 @@ function NewStore() {
 
   const [form, setForm] = useState({
     name: "",
+    address: "",
     password: "",
     confirmPassword: "",
   });
@@ -45,6 +46,7 @@ function NewStore() {
       const payload: StoreCreateInput = {
         name: form.name.trim(),
         password: form.password,
+        address: form.address.trim(),
       };
 
       const parseResult = storeCreateSchema.safeParse(payload);
@@ -93,6 +95,13 @@ function NewStore() {
             label="Store Name"
             name="name"
             value={form.name}
+            onChange={handleChange}
+            required
+          />
+          <TextField
+            label="Address"
+            name="address"
+            value={form.address}
             onChange={handleChange}
             required
           />

@@ -47,14 +47,18 @@ router.get('/:id', async (req, res) => {
 
 router.post("/login", async (req, res) => {
   const { storeId, password } = req.body;
+
   if (!storeId || !password) {
     return res.status(400).json({ error: "storeId and password are required" });
   }
+
   const store = await prisma.store.findUnique({ where: { id: Number(storeId) } });
+
   if (!store) return res.status(404).json({ error: "Store not found" });
 
   const bcrypt = require("bcryptjs");
   const valid = await bcrypt.compare(password, store.passwordHash);
+
   if (!valid) return res.status(401).json({ error: "Invalid password" });
 
   // Don't return passwordHash
@@ -68,7 +72,7 @@ router.post("/", async (req, res) => {
   if (!parseResult.success) {
     return res.status(400).json({ error: parseResult.error.issues });
   }
-  const { name, password } = parseResult.data;
+  const { name, password, address } = parseResult.data;
 
   try {
     const passwordHash = await bcrypt.hash(password, 10);
@@ -76,6 +80,7 @@ router.post("/", async (req, res) => {
       data: {
         name,
         passwordHash,
+        address,
       },
     });
     // Do not return passwordHash in response

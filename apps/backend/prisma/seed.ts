@@ -12,10 +12,12 @@ async function main() {
   const stores = [
     {
       name: 'Goldfish',
+      address: '123 Ocean Drive, City',
       passwordHash: '$2y$10$/ImKXzNYbxvlPFykI8v7x.0DmZnNuGfef/Hfe29g86O8.zvYzShfC',
     },
     {
       name: 'Friends Foods',
+      address: '456 Food Street, Town',
       passwordHash: '$2y$10$/ImKXzNYbxvlPFykI8v7x.0DmZnNuGfef/Hfe29g86O8.zvYzShfC',
     },
   ];
@@ -68,6 +70,7 @@ async function main() {
       data: {
         name: stores[i].name,
         passwordHash: stores[i].passwordHash,
+        address: stores[i].address,
         products: { create: products[i] },
         shops: { create: shops[i] },
         salesmen: { create: salesmen[i] },
