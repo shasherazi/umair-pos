@@ -1,13 +1,14 @@
-import { Router } from 'express';
-import PDFDocument from "pdfkit";
-import prisma from '../prisma';
-import { saleCreateSchema } from '@shared/validation/sale';
-import { formatDateTime } from '@shared/utils/formatDateTimeForInvoice';
+import { Router } from "express";
+import PDFDocument, { fontSize } from "pdfkit";
+import prisma from "../prisma";
+import { saleCreateSchema } from "@shared/validation/sale";
+import { formatDateTime } from "@shared/utils/formatDateTimeForInvoice";
+import { size } from "pdfkit/js/page";
 
 const router = Router();
 
 // Get all sales
-router.get('/', async (req, res) => {
+router.get("/", async (req, res) => {
   try {
     const sales = await prisma.sale.findMany();
     res.json(sales);
@@ -17,9 +18,17 @@ router.get('/', async (req, res) => {
 });
 
 // Get current month sales
-router.get('/current-month', async (req, res) => {
-  const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-  const endOfMonth = new Date(new Date().getFullYear(), new Date().getMonth() + 1, 0);
+router.get("/current-month", async (req, res) => {
+  const startOfMonth = new Date(
+    new Date().getFullYear(),
+    new Date().getMonth(),
+    1
+  );
+  const endOfMonth = new Date(
+    new Date().getFullYear(),
+    new Date().getMonth() + 1,
+    0
+  );
 
   try {
     const sales = await prisma.sale.findMany({
@@ -30,14 +39,14 @@ router.get('/current-month', async (req, res) => {
         },
       },
       // sort by reverse chronological order
-      orderBy: { saleTime: 'desc' },
+      orderBy: { saleTime: "desc" },
       include: {
         saleItems: true,
         shop: {
           select: {
             name: true,
           },
-        }
+        },
       },
     });
     res.json(sales);
@@ -47,31 +56,30 @@ router.get('/current-month', async (req, res) => {
 });
 
 // Get sale by ID
-router.get('/:id', async (req, res) => {
+router.get("/:id", async (req, res) => {
   const id = Number(req.params.id);
 
   if (isNaN(id)) {
-    return res.status(400).json({ error: 'Invalid sale ID' });
+    return res.status(400).json({ error: "Invalid sale ID" });
   }
 
   try {
-    const sale = await prisma.sale.findUnique(
-      {
-        where: { id },
-        include: {
-          saleItems: {
-            include: {
-              product: true,
-            }
+    const sale = await prisma.sale.findUnique({
+      where: { id },
+      include: {
+        saleItems: {
+          include: {
+            product: true,
           },
-          shop: {
-            select: {
-              name: true,
-            },
+        },
+        shop: {
+          select: {
+            name: true,
           },
-        }
-      });
-    if (!sale) return res.status(404).json({ error: 'Sale not found' });
+        },
+      },
+    });
+    if (!sale) return res.status(404).json({ error: "Sale not found" });
     res.json(sale);
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });
@@ -87,8 +95,16 @@ router.get("/:id/invoice-pdf", async (req, res) => {
   // Fetch sale with store information
   const sale = await prisma.sale.findUnique({
     where: { id: saleId },
-    include: { store: true, shop: true, salesman: true },
+    include: {
+      store: true,
+      shop: true,
+      salesman: true,
+      saleItems: {
+        include: { product: true },
+      },
+    },
   });
+
   if (!sale || !sale.store) {
     return res.status(404).json({ error: "Sale or store not found" });
   }
@@ -99,7 +115,6 @@ router.get("/:id/invoice-pdf", async (req, res) => {
     "Content-Disposition",
     `attachment; filename="invoice-${saleId}.pdf"`
   );
-
 
   // Create PDF
   const doc = new PDFDocument({ size: "A4", margin: 20 });
@@ -121,81 +136,177 @@ router.get("/:id/invoice-pdf", async (req, res) => {
   const signatureLabelFontSize = 8;
 
   // Store name (centered, large font)
-  doc.fontSize(storeNameFontSize)
+  doc
+    .fontSize(storeNameFontSize)
     .font("Helvetica-Bold")
     .text(sale.store.name, { align: "center" });
 
   // Store address (centered, smaller font, below name)
-  doc.font("Helvetica")
+  doc
+    .font("Helvetica")
     .fontSize(storeAddressFontSize)
     .text(sale.store.address, { align: "center" });
 
   doc.moveDown(0.5);
   let currentY = doc.y;
 
-  doc.fontSize(shopNameFontSize)
-    .text(sale.shop.name, margin, currentY, { width: shopDataMaxWidth, align: "left" });
+  doc.fontSize(shopNameFontSize).text(sale.shop.name, margin, currentY, {
+    width: shopDataMaxWidth,
+    align: "left",
+  });
 
-  doc.fontSize(invoiceNumberFontSize)
-    .text(
-      `Invoice #${saleId}`,
-      pageWidth - margin - shopDataMaxWidth, // x position for right block
-      currentY,
-      { width: shopDataMaxWidth, align: "right" }
-    );
+  doc.fontSize(invoiceNumberFontSize).text(
+    `Invoice #${saleId}`,
+    pageWidth - margin - shopDataMaxWidth, // x position for right block
+    currentY,
+    { width: shopDataMaxWidth, align: "right" }
+  );
 
-  currentY = doc.y
+  currentY = doc.y;
 
-  doc.fontSize(shopAddressFontSize)
-    .text(sale.shop.address, margin, doc.y, { width: shopDataMaxWidth, align: "left" });
+  doc.fontSize(shopAddressFontSize).text(sale.shop.address, margin, doc.y, {
+    width: shopDataMaxWidth,
+    align: "left",
+  });
 
-  doc.fontSize(saleDateFontSize)
-    .text(
-      `Date: ${formatDateTime(sale.saleTime.toISOString())}`,
-      pageWidth - margin - shopDataMaxWidth, // x position for right block
-      currentY,
-      { width: shopDataMaxWidth, align: "right" }
-    );
+  doc.fontSize(saleDateFontSize).text(
+    `Date: ${formatDateTime(sale.saleTime.toISOString())}`,
+    pageWidth - margin - shopDataMaxWidth, // x position for right block
+    currentY,
+    { width: shopDataMaxWidth, align: "right" }
+  );
 
-  currentY = doc.y
+  currentY = doc.y;
 
-  doc.fontSize(salesManFontSize)
-    .text(
-      `Delivery Man: ${sale.salesman.name}`,
-      pageWidth - margin - shopDataMaxWidth, // x position for right block
-      currentY,
-      { width: shopDataMaxWidth, align: "right" }
-    );
+  doc.fontSize(salesManFontSize).text(
+    `Delivery Man: ${sale.salesman.name}`,
+    pageWidth - margin - shopDataMaxWidth, // x position for right block
+    currentY,
+    { width: shopDataMaxWidth, align: "right" }
+  );
 
+  // table
+  const columnHeaders = [
+    "Sr. No.",
+    "Product",
+    "Quantity",
+    "TP Rate",
+    "Gross Amount",
+    "Discount",
+    "Net Amount",
+  ];
+
+  const saleDiscount = sale.discount ?? 0;
+
+  const tableRows = sale.saleItems.map((item, idx) => {
+    const grossAmount = item.price * item.quantity;
+    const discountAmount = grossAmount * (saleDiscount / 100);
+    const netAmount = grossAmount - discountAmount;
+
+    return [
+      (idx + 1).toString(),
+      item.product.name,
+      item.quantity.toString(),
+      item.price.toFixed(2),
+      grossAmount.toFixed(2),
+      discountAmount.toFixed(2),
+      netAmount.toFixed(2),
+    ];
+  });
+
+  const totalItems = sale.saleItems.length;
+  const totalQuantity = sale.saleItems.reduce(
+    (sum, item) => sum + item.quantity,
+    0
+  );
+  const totalGross = sale.saleItems.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0
+  );
+  const totalDiscount = totalGross * (saleDiscount / 100);
+  const totalNet = totalGross - totalDiscount;
+
+  const grandTotalRow = [
+    totalQuantity.toString(),
+    "", // TP Rate (skip)
+    totalGross.toFixed(2),
+    totalDiscount.toFixed(2),
+    totalNet.toFixed(2),
+  ];
+
+  doc.table({
+    position: { x: margin, y: doc.y + 20 },
+    columnStyles: [50, "*", 60, "*", "*", "*", "*"],
+    rowStyles: (rowIndex) => {
+      if (rowIndex === tableRows.length + 1) {
+        return { backgroundColor: "#f0f0f0", font: { src: "Helvetica-Bold" } };
+      }
+      if (rowIndex === 0) {
+        return { font: { src: "Helvetica-Bold" } };
+      }
+    },
+    data: [
+      columnHeaders,
+      ...tableRows,
+      [
+        {
+          colSpan: 2,
+          text: `${totalItems} items`,
+          font: { src: "Helvetica-Bold" },
+        },
+        ...grandTotalRow,
+      ],
+    ],
+  });
 
   // signature lines
-  doc.moveDown(2).fontSize(signatureLabelFontSize)
+  doc
+    .moveDown(4)
+    .fontSize(signatureLabelFontSize)
     .text(sale.salesman.name, leftLineX, doc.y, { align: "left" });
 
-  doc.moveTo(leftLineX, doc.y)
+  doc
+    .moveTo(leftLineX, doc.y)
     .lineTo(leftLineX + lineLength, doc.y)
     .stroke();
 
   currentY = doc.y;
 
-  doc.fontSize(signatureLabelFontSize)
+  doc
+    .fontSize(signatureLabelFontSize)
     .text("Order Booker", leftLineX, doc.y + 2, { align: "left" });
 
-  doc.moveTo(rightLineX, currentY)
+  doc
+    .moveTo(rightLineX, currentY)
     .lineTo(rightLineX + lineLength, currentY)
     .stroke();
 
-  doc.fontSize(signatureLabelFontSize)
+  doc
+    .fontSize(signatureLabelFontSize)
     .text("Shopkeeper", rightLineX, currentY + 2, { align: "right" });
+
+  // urdu lines
+  doc.registerFont("NotoSansArabic", "assets/NotoSansArabic-Regular.ttf");
+  doc.registerFont("NotoNastaliqUrdu", "assets/NotoNastaliqUrdu-Regular.ttf");
+
+  const urduLines = [
+    "بل کے مطابق مال چیک کر لیں۔ کوئی مال کم ہونے کی صورت میں آرڈر بکر یا سیلز مین کو دیے گئے ایڈوانس کی کمپنی ذمہ دار نہ ہوگی۔",
+    "اصل رسید کے بغیر رقم کی ادائیگی نہ کریں۔",
+    "رقم کی ادائیگی کیش میں کر کے ڈسکاؤنٹ حاصل کریں۔",
+  ];
+
+  doc
+    .font("NotoNastaliqUrdu")
+    .fontSize(10)
+    .text("رقم کی ادائیگی کیش میں کر کے ڈسکاؤنٹ حاصل کریں۔");
 
   doc.pipe(res);
   doc.end();
 });
 
-
 // Create a new sale
 
-router.post('/', async (req, res) => {
+router.post("/", async (req, res) => {
   const parseResult = saleCreateSchema.safeParse(req.body);
 
   if (!parseResult.success) {
@@ -214,20 +325,22 @@ router.post('/', async (req, res) => {
 
   try {
     // Fetch all products in one query
-    const productIds = items.map(item => item.productId);
+    const productIds = items.map((item) => item.productId);
     const products = await prisma.product.findMany({
       where: { id: { in: productIds } },
     });
 
     if (products.length !== items.length) {
-      return res.status(400).json({ error: 'One or more products not found' });
+      return res.status(400).json({ error: "One or more products not found" });
     }
 
     // Check stock for each item
     for (const item of items) {
-      const product = products.find(p => p.id === item.productId);
+      const product = products.find((p) => p.id === item.productId);
       if (!product) {
-        return res.status(400).json({ error: `Product ${item.productId} not found` });
+        return res
+          .status(400)
+          .json({ error: `Product ${item.productId} not found` });
       }
       if (product.stock < item.quantity) {
         return res.status(400).json({
@@ -238,7 +351,7 @@ router.post('/', async (req, res) => {
 
     // Calculate total price using the price provided in each sale item
     let total = 0;
-    const saleItemsData = items.map(item => {
+    const saleItemsData = items.map((item) => {
       total += item.price * item.quantity;
       return {
         productId: item.productId,
