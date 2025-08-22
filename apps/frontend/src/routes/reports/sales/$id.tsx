@@ -19,6 +19,7 @@ import {
   Stack,
 } from "@mui/material";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { formatMoney } from "@shared/utils/formatMoney";
 
 const fetchSale = async (id: string) => {
   const res = await fetch(`http://localhost:3001/api/sales/${id}`);
@@ -43,13 +44,18 @@ function SaleDetails() {
   if (error || !sale)
     return <Typography color="error">Sale not found.</Typography>;
 
-  // Calculate totals
-  const totalBeforeDiscount = sale.saleItems.reduce(
+  // Totals
+  const saleDiscount = sale.discount ?? 0;
+  const totalQuantity = sale.saleItems.reduce(
+    (sum: number, item: any) => sum + item.quantity,
+    0,
+  );
+  const totalGross = sale.saleItems.reduce(
     (sum: number, item: any) => sum + item.price * item.quantity,
     0,
   );
-  const discountAmount = (totalBeforeDiscount * (sale.discount ?? 0)) / 100;
-  const grandTotal = totalBeforeDiscount - discountAmount;
+  const totalDiscount = totalGross * (saleDiscount / 100);
+  const totalNet = totalGross - totalDiscount;
 
   const handlePrint = () => {
     fetch(`http://localhost:3001/api/sales/${sale.id}/invoice-pdf`, {
@@ -69,7 +75,7 @@ function SaleDetails() {
   };
 
   return (
-    <Box sx={{ mx: "auto", mt: 4, p: 2 }}>
+    <Box sx={{ mx: "auto", mt: 4, p: 2, maxWidth: 1000 }}>
       <Stack direction="row" alignItems="center" spacing={2} mb={2}>
         <Button
           startIcon={<ArrowBackIcon />}
@@ -78,7 +84,7 @@ function SaleDetails() {
           Back to Sales
         </Button>
         <Typography variant="h5" flexGrow={1}>
-          Sale Receipt #{sale.id}
+          Invoice #{sale.id}
         </Typography>
         <Button
           variant="outlined"
@@ -89,85 +95,81 @@ function SaleDetails() {
           Export as PDF
         </Button>
       </Stack>
-      <Typography variant="subtitle1" mb={1}>
-        Date: {new Date(sale.saleTime).toLocaleString()}
-      </Typography>
-      <Typography variant="subtitle2" mb={2}>
-        Store ID: {sale.storeId}
-      </Typography>
-      <Typography variant="subtitle2" mb={2}>
-        Shop name: {sale.shop.name}
-      </Typography>
 
+      {/* Header Info */}
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="subtitle1" fontWeight="bold">
+          {sale.shop.name}
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          {sale.shop.address}
+        </Typography>
+        {sale.shop.phone && (
+          <Typography variant="body2" color="text.secondary">
+            Phone: {sale.shop.phone}
+          </Typography>
+        )}
+        <Stack direction="row" spacing={4} mt={1}>
+          <Typography variant="body2">
+            <b>Date:</b> {new Date(sale.saleTime).toLocaleString()}
+          </Typography>
+          <Typography variant="body2">
+            <b>Salesman:</b> {sale.salesman.name}
+          </Typography>
+        </Stack>
+      </Box>
+
+      {/* Table */}
       <TableContainer component={Paper} sx={{ mb: 2 }}>
         <Table>
           <TableHead>
             <TableRow>
+              <TableCell>Sr. No.</TableCell>
               <TableCell>Product</TableCell>
-              <TableCell>Market Price</TableCell>
-              <TableCell>Sale Price</TableCell>
-              <TableCell>Discounted Price</TableCell>
               <TableCell>Quantity</TableCell>
-              <TableCell align="right">Subtotal</TableCell>
+              <TableCell>TP Rate</TableCell>
+              <TableCell>Gross Amount</TableCell>
+              <TableCell>Discount</TableCell>
+              <TableCell>Net Amount</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {sale.saleItems.map((item: any) => {
-              const marketPrice = item.product.price;
-              const salePrice = item.price;
-              const discountedPrice =
-                sale.discount > 0
-                  ? (salePrice * (1 - sale.discount / 100)).toFixed(2)
-                  : salePrice.toFixed(2);
-              const subtotal = salePrice * item.quantity;
-              const discountedSubtotal =
-                sale.discount > 0
-                  ? (subtotal * (1 - sale.discount / 100)).toFixed(2)
-                  : subtotal.toFixed(2);
-
+            {sale.saleItems.map((item: any, idx: number) => {
+              const grossAmount = item.price * item.quantity;
+              const discountAmount = grossAmount * (saleDiscount / 100);
+              const netAmount = grossAmount - discountAmount;
               return (
                 <TableRow key={item.id}>
+                  <TableCell>{idx + 1}</TableCell>
                   <TableCell>{item.product.name}</TableCell>
-                  <TableCell>Rs. {marketPrice.toFixed(2)}</TableCell>
-                  <TableCell>Rs. {salePrice.toFixed(2)}</TableCell>
-                  <TableCell>
-                    {sale.discount > 0 ? `Rs. ${discountedPrice}` : "-"}
-                  </TableCell>
                   <TableCell>{item.quantity}</TableCell>
-                  <TableCell align="right">
-                    Rs.{" "}
-                    {sale.discount > 0
-                      ? discountedSubtotal
-                      : subtotal.toFixed(2)}
+                  <TableCell>Rs. {formatMoney(item.price)}</TableCell>
+                  <TableCell>Rs. {formatMoney(grossAmount)}</TableCell>
+                  <TableCell>
+                    Rs. {formatMoney(discountAmount)}
+                    {saleDiscount > 0 && ` (${saleDiscount}%)`}
                   </TableCell>
+                  <TableCell>Rs. {formatMoney(netAmount)}</TableCell>
                 </TableRow>
               );
             })}
-            {/* Totals */}
+            {/* Grand Total Row */}
             <TableRow>
-              <TableCell colSpan={5} align="right">
-                <b>Total (before discount):</b>
+              <TableCell colSpan={2} align="left">
+                <b>{sale.saleItems.length} items</b>
               </TableCell>
-              <TableCell align="right">
-                <b>Rs. {totalBeforeDiscount.toFixed(2)}</b>
+              <TableCell>
+                <b>{totalQuantity}</b>
               </TableCell>
-            </TableRow>
-            {sale.discount > 0 && (
-              <TableRow>
-                <TableCell colSpan={5} align="right">
-                  <b>Discount ({sale.discount}%):</b>
-                </TableCell>
-                <TableCell align="right">
-                  <b>- Rs. {discountAmount.toFixed(2)}</b>
-                </TableCell>
-              </TableRow>
-            )}
-            <TableRow>
-              <TableCell colSpan={5} align="right">
-                <b>Grand Total:</b>
+              <TableCell />
+              <TableCell>
+                <b>Rs. {formatMoney(totalGross)}</b>
               </TableCell>
-              <TableCell align="right">
-                <b>Rs. {grandTotal.toFixed(2)}</b>
+              <TableCell>
+                <b>Rs. {formatMoney(totalDiscount)}</b>
+              </TableCell>
+              <TableCell>
+                <b>Rs. {formatMoney(totalNet)}</b>
               </TableCell>
             </TableRow>
           </TableBody>

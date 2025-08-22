@@ -24,6 +24,7 @@ import {
 import { useState } from "react";
 import { shopPatchSchema } from "@shared/validation/shop";
 import { useAdminGuard } from "../../hooks/useAdminGuard";
+import { formatMoney } from "@shared/utils/formatMoney";
 
 // Fetch shop details and sales stats
 const fetchShopDetails = async (storeId: number, shopId: number) => {
@@ -154,18 +155,18 @@ function ShopDetailsPage() {
               <TableCell>{shop.name}</TableCell>
               <TableCell>{shop.address}</TableCell>
               <TableCell>{shop.phone}</TableCell>
-              <TableCell>{shop.unitsSold ?? 0}</TableCell>
+              <TableCell>{formatMoney(shop.unitsSold) ?? 0}</TableCell>
               <TableCell>
-                Rs. {shop.amountMade ? shop.amountMade.toFixed(2) : "0.00"}
+                Rs. {shop.amountMade ? formatMoney(shop.amountMade) : "0.00"}
               </TableCell>
               <TableCell>
                 {shop.mostSoldItem ? shop.mostSoldItem : "-"}
               </TableCell>
               <TableCell>
-                Rs. {shop.cashPaid ? shop.cashPaid.toFixed(2) : "0.00"}
+                Rs. {shop.cashPaid ? formatMoney(shop.cashPaid) : "0.00"}
               </TableCell>
               <TableCell>
-                Rs. {shop.credit ? shop.credit.toFixed(2) : "0.00"}
+                Rs. {shop.credit ? formatMoney(shop.credit) : "0.00"}
               </TableCell>
               <TableCell>
                 {shop.firstSaleDate

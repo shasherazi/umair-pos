@@ -24,6 +24,7 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import { useAdminGuard } from "../../hooks/useAdminGuard";
+import { formatMoney } from "@shared/utils/formatMoney";
 
 // Fetch product details and sales stats
 const fetchProductDetails = async (storeId: number, productId: number) => {
@@ -133,7 +134,7 @@ function ProductDetailsPage() {
   const totalStockValue = product.stock * product.price;
 
   return (
-    <Box sx={{ maxWidth: 600, mx: "auto", mt: 4, p: 2 }}>
+    <Box sx={{ maxWidth: 900, mx: "auto", mt: 4, p: 2 }}>
       <Typography variant="h5" mb={2}>
         Product Details
       </Typography>
@@ -152,13 +153,13 @@ function ProductDetailsPage() {
           <TableBody>
             <TableRow>
               <TableCell>{product.name}</TableCell>
-              <TableCell>Rs. {product.price.toFixed(2)}</TableCell>
-              <TableCell>{product.stock}</TableCell>
-              <TableCell>Rs. {totalStockValue.toFixed(2)}</TableCell>
-              <TableCell>{product.unitsSold ?? 0}</TableCell>
+              <TableCell>Rs. {formatMoney(product.price)}</TableCell>
+              <TableCell>{formatMoney(product.stock)}</TableCell>
+              <TableCell>Rs. {formatMoney(totalStockValue)}</TableCell>
+              <TableCell>{formatMoney(product.unitsSold) ?? 0}</TableCell>
               <TableCell>
                 Rs.{" "}
-                {product.amountMade ? product.amountMade.toFixed(2) : "0.00"}
+                {product.amountMade ? formatMoney(product.amountMade) : "0.00"}
               </TableCell>
             </TableRow>
           </TableBody>

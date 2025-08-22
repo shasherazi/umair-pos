@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { useAdminGuard } from "../../hooks/useAdminGuard";
+import { formatMoney } from "@shared/utils/formatMoney";
 
 const fetchInventory = async (storeId: number) => {
   const res = await fetch(
@@ -90,7 +91,7 @@ function InventoryPage() {
                   <TableCell>Rs. {product.price.toFixed(2)}</TableCell>
                   <TableCell>{product.stock}</TableCell>
                   <TableCell>
-                    Rs. {(product.stock * product.price).toFixed(2)}
+                    Rs. {formatMoney(product.stock * product.price)}
                   </TableCell>
                 </TableRow>
               ))}

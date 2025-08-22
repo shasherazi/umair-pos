@@ -1,9 +1,9 @@
 import { Router } from "express";
-import PDFDocument, { fontSize } from "pdfkit";
+import PDFDocument from "pdfkit";
 import prisma from "../prisma";
 import { saleCreateSchema } from "@shared/validation/sale";
 import { formatDateTime } from "@shared/utils/formatDateTimeForInvoice";
-import { size } from "pdfkit/js/page";
+import { formatMoney } from "@shared/utils/formatMoney";
 
 const router = Router();
 
@@ -73,6 +73,11 @@ router.get("/:id", async (req, res) => {
           },
         },
         shop: {
+          select: {
+            name: true,
+          },
+        },
+        salesman: {
           select: {
             name: true,
           },
@@ -207,10 +212,10 @@ router.get("/:id/invoice-pdf", async (req, res) => {
       (idx + 1).toString(),
       item.product.name,
       item.quantity.toString(),
-      item.price.toFixed(2),
-      grossAmount.toFixed(2),
-      discountAmount.toFixed(2),
-      netAmount.toFixed(2),
+      formatMoney(item.price),
+      formatMoney(grossAmount),
+      formatMoney(discountAmount),
+      formatMoney(netAmount)
     ];
   });
 
@@ -229,9 +234,9 @@ router.get("/:id/invoice-pdf", async (req, res) => {
   const grandTotalRow = [
     totalQuantity.toString(),
     "", // TP Rate (skip)
-    totalGross.toFixed(2),
-    totalDiscount.toFixed(2),
-    totalNet.toFixed(2),
+    formatMoney(totalGross),
+    formatMoney(totalDiscount),
+    formatMoney(totalNet)
   ];
 
   doc.table({
@@ -286,19 +291,15 @@ router.get("/:id/invoice-pdf", async (req, res) => {
     .text("Shopkeeper", rightLineX, currentY + 2, { align: "right" });
 
   // urdu lines
-  doc.registerFont("NotoSansArabic", "assets/NotoSansArabic-Regular.ttf");
-  doc.registerFont("NotoNastaliqUrdu", "assets/NotoNastaliqUrdu-Regular.ttf");
-
-  const urduLines = [
-    "بل کے مطابق مال چیک کر لیں۔ کوئی مال کم ہونے کی صورت میں آرڈر بکر یا سیلز مین کو دیے گئے ایڈوانس کی کمپنی ذمہ دار نہ ہوگی۔",
-    "اصل رسید کے بغیر رقم کی ادائیگی نہ کریں۔",
-    "رقم کی ادائیگی کیش میں کر کے ڈسکاؤنٹ حاصل کریں۔",
-  ];
+  const targetWidth = doc.page.width * 0.6;
+  const x = doc.page.width - margin - targetWidth + 100;
+  const y = doc.y + 20;
 
   doc
-    .font("NotoNastaliqUrdu")
-    .fontSize(10)
-    .text("رقم کی ادائیگی کیش میں کر کے ڈسکاؤنٹ حاصل کریں۔");
+    .image("assets/urdu.png", x, y, {
+      width: targetWidth,
+      align: "right",
+    });
 
   doc.pipe(res);
   doc.end();

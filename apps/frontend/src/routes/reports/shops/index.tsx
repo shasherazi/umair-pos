@@ -20,6 +20,7 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import { useAdminGuard } from "../../../hooks/useAdminGuard";
+import { formatMoney } from "@shared/utils/formatMoney";
 
 const PERIOD_OPTIONS = [
   { value: "today", label: "Today" },
@@ -100,9 +101,10 @@ function ShopsReportPage() {
               {shops.map((shop: any) => (
                 <TableRow key={shop.id}>
                   <TableCell>{shop.name}</TableCell>
-                  <TableCell>{shop.unitsSold}</TableCell>
+                  <TableCell>{formatMoney(shop.unitsSold)}</TableCell>
                   <TableCell>
-                    Rs. {shop.amountMade ? shop.amountMade.toFixed(2) : "0.00"}
+                    Rs.{" "}
+                    {shop.amountMade ? formatMoney(shop.amountMade) : "0.00"}
                   </TableCell>
                   <TableCell>
                     {shop.mostSoldItem ? shop.mostSoldItem : "-"}

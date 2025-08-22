@@ -17,6 +17,7 @@ import {
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import { useAdminGuard } from "../../hooks/useAdminGuard";
+import { formatMoney } from "@shared/utils/formatMoney";
 
 const fetchSalesmen = async (storeId: number) => {
   const res = await fetch(
@@ -87,17 +88,17 @@ function SalesmenPage() {
                   }}
                 >
                   <TableCell>{salesman.name}</TableCell>
-                  <TableCell>{salesman.unitsSold}</TableCell>
+                  <TableCell>{formatMoney(salesman.unitsSold)}</TableCell>
                   <TableCell>
                     Rs.{" "}
                     {salesman.totalSales
-                      ? salesman.totalSales.toFixed(2)
+                      ? formatMoney(salesman.totalSales)
                       : "0.00"}
                   </TableCell>
                   <TableCell>
                     Rs.{" "}
                     {salesman.totalCredit
-                      ? salesman.totalCredit.toFixed(2)
+                      ? formatMoney(salesman.totalCredit)
                       : "0.00"}
                   </TableCell>
                 </TableRow>

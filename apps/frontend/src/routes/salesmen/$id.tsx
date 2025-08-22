@@ -23,6 +23,7 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import { useAdminGuard } from "../../hooks/useAdminGuard";
+import { formatMoney } from "@shared/utils/formatMoney";
 
 // Fetch salesman details and stats
 const fetchSalesmanDetails = async (storeId: number, salesmanId: number) => {
@@ -127,15 +128,17 @@ function SalesmanDetailsPage() {
           <TableBody>
             <TableRow>
               <TableCell>{salesman.name}</TableCell>
-              <TableCell>{salesman.unitsSold ?? 0}</TableCell>
+              <TableCell>{formatMoney(salesman.unitsSold) ?? 0}</TableCell>
               <TableCell>
                 Rs.{" "}
-                {salesman.totalSales ? salesman.totalSales.toFixed(2) : "0.00"}
+                {salesman.totalSales
+                  ? formatMoney(salesman.totalSales)
+                  : "0.00"}
               </TableCell>
               <TableCell>
                 Rs.{" "}
                 {salesman.totalCredit
-                  ? salesman.totalCredit.toFixed(2)
+                  ? formatMoney(salesman.totalCredit)
                   : "0.00"}
               </TableCell>
             </TableRow>

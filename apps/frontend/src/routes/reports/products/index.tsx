@@ -20,6 +20,7 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import { useAdminGuard } from "../../../hooks/useAdminGuard";
+import { formatMoney } from "@shared/utils/formatMoney";
 
 const PERIOD_OPTIONS = [
   { value: "today", label: "Today" },
@@ -100,12 +101,12 @@ function ProductsPage() {
               {products.map((product: any) => (
                 <TableRow key={product.id}>
                   <TableCell>{product.name}</TableCell>
-                  <TableCell>{product.unitsSold}</TableCell>
-                  <TableCell>Rs. {product.price.toFixed(2)}</TableCell>
+                  <TableCell>{formatMoney(product.unitsSold)}</TableCell>
+                  <TableCell>Rs. {formatMoney(product.price)}</TableCell>
                   <TableCell>
                     Rs.{" "}
                     {product.amountMade
-                      ? product.amountMade.toFixed(2)
+                      ? formatMoney(product.amountMade)
                       : "0.00"}
                   </TableCell>
                 </TableRow>
