@@ -1,3 +1,4 @@
+import PrintIcon from "@mui/icons-material/Print";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useStore } from "../../context/StoreContext";
@@ -41,6 +42,27 @@ function InventoryPage() {
     enabled: !!activeStore,
   });
 
+  const sortedProducts = products
+    ? [...products].sort((a, b) => a.name.localeCompare(b.name))
+    : [];
+
+  const handleExportPdf = () => {
+    fetch(`http://localhost:3001/api/products/${activeStore!.id}/pdf`, {
+      method: "GET",
+    })
+      .then((res) => res.blob())
+      .then((blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `inventory-${activeStore!.id}.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      });
+  };
+
   return (
     <Box sx={{ maxWidth: 900, mx: "auto", mt: 4, p: 2 }}>
       <Stack
@@ -50,14 +72,23 @@ function InventoryPage() {
         mb={2}
       >
         <Typography variant="h5">Inventory</Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={() => navigate({ to: "/inventory/new" })}
-        >
-          Add new item
-        </Button>
+        <Stack direction="row" spacing={2}>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={() => navigate({ to: "/inventory/new" })}
+          >
+            Add new item
+          </Button>
+          <Button
+            variant="outlined"
+            startIcon={<PrintIcon />}
+            onClick={handleExportPdf}
+          >
+            Export to PDF
+          </Button>
+        </Stack>
       </Stack>
 
       {isLoading ? (
@@ -78,7 +109,7 @@ function InventoryPage() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {products.map((product: any) => (
+              {sortedProducts.map((product: any) => (
                 <TableRow
                   key={product.id}
                   onClick={() => navigate({ to: `/inventory/${product.id}` })}

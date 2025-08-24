@@ -33,7 +33,7 @@ export const Navbar: React.FC = () => {
         <Typography
           variant="h6"
           component={Link}
-          to="/"
+          to="/reports/sales"
           sx={{
             flexGrow: 1,
             alignItems: "flex-start",

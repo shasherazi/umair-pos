@@ -1,7 +1,9 @@
+import PDFDocument from "pdfkit";
 import { Router } from 'express';
 import prisma from '../prisma';
 import { productCreateSchema, productPatchSchema } from '@shared/validation/product';
 import { getDateRange } from '@shared/utils/getDateRange';
+import { formatMoney } from "@shared/utils/formatMoney";
 
 
 const router = Router();
@@ -101,6 +103,109 @@ router.get('/:id', async (req, res) => {
   } catch (error) {
     res.status(500).json({ error: (error as Error).message });
   }
+});
+
+router.get("/:storeId/pdf", async (req, res) => {
+  const storeId = Number(req.params.storeId);
+  if (isNaN(storeId)) {
+    return res.status(400).json({ error: "Invalid store ID" });
+  }
+
+  // Fetch store and products
+  const store = await prisma.store.findUnique({ where: { id: storeId } });
+  if (!store) return res.status(404).json({ error: "Store not found" });
+
+  let products = await prisma.product.findMany({ where: { storeId } });
+  products = products.sort((a, b) => a.name.localeCompare(b.name));
+
+  // Set headers for PDF download
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="inventory-${storeId}.pdf"`
+  );
+
+  // Create PDF
+  const doc = new PDFDocument({ size: "A4", margin: 20 });
+  const pageWidth = doc.page.width;
+  const margin = doc.page.margins.left;
+
+  // Header: Store name centered
+  doc
+    .fontSize(20)
+    .font("Helvetica-Bold")
+    .text(store.name, { align: "center" });
+
+  // Store address (if you want)
+  if (store.address) {
+    doc
+      .font("Helvetica")
+      .fontSize(12)
+      .text(store.address, { align: "center" });
+  }
+
+  doc.moveDown(0.5);
+
+  // Date (top right)
+  doc
+    .fontSize(10)
+    .text(`Date: ${new Date().toLocaleString()}`, pageWidth - margin - 200, doc.y, {
+      width: 200,
+      align: "right",
+    });
+
+  doc.moveDown(1);
+
+  // Table columns
+  const columnHeaders = [
+    "Sr. No.",
+    "Product",
+    "Unit Price",
+    "Units in Stock",
+    "Total Stock Value",
+  ];
+
+  // Table rows
+  const tableRows = products.map((product, idx) => {
+    const totalValue = product.price * product.stock;
+    return [
+      (idx + 1).toString(),
+      product.name,
+      `Rs. ${formatMoney(product.price)}`,
+      product.stock.toLocaleString(),
+      `Rs. ${formatMoney(totalValue)}`
+    ];
+  });
+
+  // Grand totals
+  const totalUnits = products.reduce((sum, p) => sum + p.stock, 0);
+  const totalStockValue = products.reduce((sum, p) => sum + p.price * p.stock, 0);
+
+  // Table
+  doc.table({
+    position: { x: margin, y: doc.y + 10 },
+    columnStyles: [50, "*", 80, 80, 100],
+    rowStyles: (rowIndex) => {
+      if (rowIndex === tableRows.length + 1) {
+        return { backgroundColor: "#f0f0f0", font: { src: "Helvetica-Bold" } };
+      }
+      if (rowIndex === 0) {
+        return { font: { src: "Helvetica-Bold" } };
+      }
+    },
+    data: [
+      columnHeaders,
+      ...tableRows,
+      [
+        { colSpan: 3, text: "Grand Total", font: { src: "Helvetica-Bold" } },
+        totalUnits.toLocaleString(),
+        `Rs. ${formatMoney(totalStockValue)}`,
+      ],
+    ],
+  });
+
+  doc.pipe(res);
+  doc.end();
 });
 
 router.get('/', async (req, res) => {

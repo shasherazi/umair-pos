@@ -261,12 +261,39 @@ router.get("/:id/invoice-pdf", async (req, res) => {
         },
         ...grandTotalRow,
       ],
+      [
+        { colSpan: 7, text: " ", backgroundColor: "#999" },
+      ],
+      [
+        {
+          colSpan: 5,
+          rowSpan: 4,
+          text: "",
+        },
+        { text: "Before Discount", font: { src: "Helvetica-Bold" } },
+        { text: formatMoney(totalGross), font: { src: "Helvetica-Bold" } },
+      ],
+      [
+        { text: "Discount", font: { src: "Helvetica-Bold" } },
+        {
+          text: `${formatMoney(totalDiscount)} (${saleDiscount}%)`,
+          font: { src: "Helvetica-Bold" }
+        },
+      ],
+      [
+        { text: "After Discount", font: { src: "Helvetica-Bold" } },
+        { text: formatMoney(totalNet), font: { src: "Helvetica-Bold" } },
+      ],
+      [
+        { text: "Grand Total", font: { src: "Helvetica-Bold" } },
+        { text: formatMoney(totalNet), font: { src: "Helvetica-Bold" } },
+      ],
     ],
   });
 
   // signature lines
   doc
-    .moveDown(4)
+    .moveDown(6)
     .fontSize(signatureLabelFontSize)
     .text(sale.salesman.name, leftLineX, doc.y, { align: "left" });
 
@@ -293,7 +320,7 @@ router.get("/:id/invoice-pdf", async (req, res) => {
   // urdu lines
   const targetWidth = doc.page.width * 0.6;
   const x = doc.page.width - margin - targetWidth + 100;
-  const y = doc.y + 20;
+  const y = doc.y + 25;
 
   doc
     .image("assets/urdu.png", x, y, {
