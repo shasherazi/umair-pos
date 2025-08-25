@@ -16,6 +16,14 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+// TODO: remove
+// Debuingging env
+console.log('Environment Variables:', {
+  PORT: process.env.PORT,
+  NODE_ENV: process.env.NODE_ENV,
+  DATABASE_URL: process.env.DATABASE_URL || 'DATABASE_URL not set',
+});
+
 app.use(helmet());
 app.use(cors());
 app.use(morgan('dev'));
