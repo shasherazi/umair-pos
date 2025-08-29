@@ -8,6 +8,7 @@
     "dev": "nodemon --watch src --exec ts-node -r tsconfig-paths/register src/index.ts",
     "prebuild": "prisma generate",
     "build": "tsc && tsc-alias",
+    "migrate": "prisma migrate deploy",
     "start": "node dist/apps/backend/src/index.js",
     "seed": "ts-node -r tsconfig-paths/register prisma/seed.ts",
     "type-check": "tsc --noEmit"

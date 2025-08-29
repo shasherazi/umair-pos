@@ -20,6 +20,7 @@ services:
       dockerfile: apps/backend/Dockerfile
     container_name: pos-backend
     restart: unless-stopped
+    command: sh -c "pnpm run migrate && pnpm start"
     environment:
       DATABASE_URL: postgresql://shasherazi@postgres:5432/pos
       PORT: 3001
