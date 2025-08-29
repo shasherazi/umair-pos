@@ -1,6 +1,8 @@
 import prisma from '../src/prisma';
+import { Prisma } from '@prisma/client'; // Import Prisma
 
 async function main() {
+  // Clear existing data
   await prisma.saleItem.deleteMany();
   await prisma.sale.deleteMany();
   await prisma.product.deleteMany();
@@ -13,12 +15,12 @@ async function main() {
     {
       name: 'Goldfish',
       address: '123 Ocean Drive, City',
-      passwordHash: '$2y$10$/ImKXzNYbxvlPFykI8v7x.0DmZnNuGfef/Hfe29g86O8.zvYzShfC',
+      password: "hello1"
     },
     {
       name: 'Friends Foods',
       address: '456 Food Street, Town',
-      passwordHash: '$2y$10$/ImKXzNYbxvlPFykI8v7x.0DmZnNuGfef/Hfe29g86O8.zvYzShfC',
+      password: "hello1"
     },
   ];
 
@@ -182,7 +184,7 @@ async function main() {
     const store = await prisma.store.create({
       data: {
         name: stores[i].name,
-        passwordHash: stores[i].passwordHash,
+        password: stores[i].password,
         address: stores[i].address,
         products: { create: productPool },
         shops: { create: shops[i] },
@@ -198,15 +200,15 @@ async function main() {
       const shop = store.shops[Math.floor(Math.random() * store.shops.length)];
       const salesman = store.salesmen[Math.floor(Math.random() * store.salesmen.length)];
       const saleType = Math.random() > 0.5 ? 'CASH' : 'CREDIT';
-      const discount = Math.floor(Math.random() * 100);
-      const productCount = Math.floor(Math.random() * 100) + 1; // 1 to 100 items
+      const discount = Math.floor(Math.random() * 50); // Discount up to 10%
+      const productCount = Math.floor(Math.random() * 50) + 1; // 1 to 5 items
       const selectedProducts = [...store.products]
         .sort(() => 0.5 - Math.random())
         .slice(0, productCount);
 
       let total = 0;
       const saleItemsData = selectedProducts.map((p) => {
-        const quantity = Math.floor(Math.random() * 5) + 1;
+        const quantity = Math.floor(Math.random() * 30) + 1;
         total += p.price * quantity;
         return {
           productId: p.id,
@@ -215,19 +217,51 @@ async function main() {
         };
       });
 
-      total -= discount;
-      if (total < 0) total = 0;
+      // Apply discount
+      const discountedTotal = total * (1 - discount / 100);
 
-      await prisma.sale.create({
-        data: {
-          storeId: store.id,
-          shopId: shop.id,
-          salesmanId: salesman.id,
-          saleType,
-          discount,
-          total,
-          saleItems: { create: saleItemsData },
-        },
+      // Prisma transaction to ensure atomicity
+      await prisma.$transaction(async (tx) => {
+        // Create the sale
+        const createdSale = await tx.sale.create({
+          data: {
+            storeId: store.id,
+            shopId: shop.id,
+            salesmanId: salesman.id,
+            saleType,
+            discount,
+            total: discountedTotal,
+            saleItems: { create: saleItemsData },
+          },
+        });
+
+        // Update product stock
+        for (const item of saleItemsData) {
+          await tx.product.update({
+            where: { id: item.productId },
+            data: { stock: { decrement: item.quantity } },
+          });
+        }
+
+        // Update shop
+        const shopUpdateData: Prisma.ShopUpdateInput = {}; // Explicitly type the object
+
+        const shopDetails = await tx.shop.findUnique({ where: { id: shop.id } });
+
+        if (shopDetails && !shopDetails.firstSaleDate) {
+          shopUpdateData.firstSaleDate = createdSale.saleTime;
+        }
+
+        if (saleType === 'CASH') {
+          shopUpdateData.cashPaid = { increment: discountedTotal };
+        } else {
+          shopUpdateData.credit = { increment: discountedTotal };
+        }
+
+        await tx.shop.update({
+          where: { id: shop.id },
+          data: shopUpdateData,
+        });
       });
     }
 

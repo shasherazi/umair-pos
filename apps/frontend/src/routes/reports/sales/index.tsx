@@ -14,31 +14,46 @@ import {
   Button,
   CircularProgress,
   Stack,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import SentimentDissatisfiedIcon from "@mui/icons-material/SentimentDissatisfied";
+import { useState } from "react";
 
-const fetchCurrentMonthSales = async () => {
-  const res = await fetch("http://localhost:3001/api/sales/current-month");
+const PERIOD_OPTIONS = [
+  { value: "today", label: "Today" },
+  { value: "yesterday", label: "Yesterday" },
+  { value: "last7days", label: "Last 7 Days" },
+  { value: "thismonth", label: "This Month" },
+  { value: "lastmonth", label: "Last Month" },
+  { value: "thisyear", label: "This Year" },
+  { value: "alltime", label: "All Time" },
+];
+
+const fetchSales = async (storeId: number, period: string) => {
+  const res = await fetch(
+    `http://localhost:3001/api/sales/report?storeId=${storeId}&period=${period}`,
+  );
   return res.json();
 };
 
 function SalesReport() {
   const navigate = useNavigate();
   const { activeStore } = useStore();
+  const [period, setPeriod] = useState<string>("thismonth");
+
   const {
     data: sales,
     isLoading,
     error,
   } = useQuery({
-    queryKey: ["currentMonthSales"],
-    queryFn: fetchCurrentMonthSales,
+    queryKey: ["sales", activeStore?.id, period],
+    queryFn: () => fetchSales(activeStore!.id, period),
+    enabled: !!activeStore,
   });
-
-  // Filter sales for the active store only
-  const filteredSales = sales?.filter(
-    (sale: any) => sale.storeId === activeStore?.id,
-  );
 
   return (
     <Box sx={{ mx: "auto", mt: 4, p: 2 }}>
@@ -49,29 +64,44 @@ function SalesReport() {
         mb={2}
       >
         <Typography variant="h5">
-          {activeStore
-            ? `Sales for ${activeStore.name} (This Month)`
-            : "Sales (This Month)"}
+          {activeStore ? `Sales for ${activeStore.name}` : "Sales"}
         </Typography>
-        <Button
-          variant="contained"
-          color="primary"
-          startIcon={<AddIcon />}
-          onClick={() => navigate({ to: "/reports/sales/new" })}
-        >
-          Add Sale
-        </Button>
+        <Stack direction="row" spacing={2}>
+          <FormControl sx={{ minWidth: 180 }}>
+            <InputLabel id="period-label">Period</InputLabel>
+            <Select
+              labelId="period-label"
+              value={period}
+              label="Period"
+              onChange={(e) => setPeriod(e.target.value)}
+            >
+              {PERIOD_OPTIONS.map((opt) => (
+                <MenuItem key={opt.value} value={opt.value}>
+                  {opt.label}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={() => navigate({ to: "/reports/sales/new" })}
+          >
+            Add Sale
+          </Button>
+        </Stack>
       </Stack>
 
       {isLoading ? (
         <CircularProgress />
       ) : error ? (
         <Typography color="error">Error loading sales</Typography>
-      ) : !filteredSales || filteredSales.length === 0 ? (
+      ) : !sales || sales.length === 0 ? (
         <Box textAlign="center" mt={6}>
           <SentimentDissatisfiedIcon color="disabled" sx={{ fontSize: 60 }} />
           <Typography variant="h6" mt={2}>
-            No sales this month yet.
+            No sales in this period yet.
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Start by adding your first sale!
@@ -93,7 +123,7 @@ function SalesReport() {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredSales.map((sale: any) => (
+              {sales.map((sale: any) => (
                 <TableRow
                   key={sale.id}
                   onClick={() => navigate({ to: `/reports/sales/${sale.id}` })}

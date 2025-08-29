@@ -4,6 +4,7 @@ import prisma from "../prisma";
 import { saleCreateSchema } from "@shared/validation/sale";
 import { formatDateTime } from "@shared/utils/formatDateTimeForInvoice";
 import { formatMoney } from "@shared/utils/formatMoney";
+import { getDateRange } from "@shared/utils/getDateRange";
 
 const router = Router();
 
@@ -17,36 +18,40 @@ router.get("/", async (req, res) => {
   }
 });
 
-// Get current month sales
-router.get("/current-month", async (req, res) => {
-  const startOfMonth = new Date(
-    new Date().getFullYear(),
-    new Date().getMonth(),
-    1
-  );
-  const endOfMonth = new Date(
-    new Date().getFullYear(),
-    new Date().getMonth() + 1,
-    0
-  );
+// Get ranged sales
+router.get("/report", async (req, res) => {
+  const { storeId, period, from, to } = req.query;
+
+  if (!storeId) {
+    return res.status(400).json({ error: "storeId is required" });
+  }
+
+  // Determine date range
+  let dateFrom: Date | undefined;
+  let dateTo: Date | undefined;
+
+  if (period && typeof period === "string") {
+    const range = getDateRange(period);
+    dateFrom = range.from;
+    dateTo = range.to;
+  } else if (from && to && typeof from === "string" && typeof to === "string") {
+    dateFrom = new Date(from);
+    dateTo = new Date(to);
+  }
 
   try {
     const sales = await prisma.sale.findMany({
       where: {
-        saleTime: {
-          gte: startOfMonth,
-          lte: endOfMonth,
-        },
+        storeId: Number(storeId),
+        ...(dateFrom && dateTo
+          ? { saleTime: { gte: dateFrom, lt: dateTo } }
+          : {}),
       },
-      // sort by reverse chronological order
       orderBy: { saleTime: "desc" },
       include: {
         saleItems: true,
-        shop: {
-          select: {
-            name: true,
-          },
-        },
+        shop: { select: { name: true, address: true, phone: true } },
+        salesman: { select: { name: true } },
       },
     });
     res.json(sales);
@@ -333,7 +338,6 @@ router.get("/:id/invoice-pdf", async (req, res) => {
 });
 
 // Create a new sale
-
 router.post("/", async (req, res) => {
   const parseResult = saleCreateSchema.safeParse(req.body);
 
@@ -388,7 +392,7 @@ router.post("/", async (req, res) => {
       };
     });
 
-    // Apply discount (percentage)
+    // Apply discount (percentage) and round up to integer
     total = total * (1 - discount / 100);
 
     // Transaction: create sale, sale items, update product stock, update shop

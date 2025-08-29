@@ -56,13 +56,12 @@ router.post("/login", async (req, res) => {
 
   if (!store) return res.status(404).json({ error: "Store not found" });
 
-  const bcrypt = require("bcryptjs");
-  const valid = await bcrypt.compare(password, store.passwordHash);
+  if (password !== store.password) {
+    return res.status(401).json({ error: "Invalid password" });
+  }
 
-  if (!valid) return res.status(401).json({ error: "Invalid password" });
-
-  // Don't return passwordHash
-  const { passwordHash, ...storeData } = store;
+  // Don't return password
+  const { password: _, ...storeData } = store;
   res.json(storeData);
 });
 
@@ -75,17 +74,17 @@ router.post("/", async (req, res) => {
   const { name, password, address } = parseResult.data;
 
   try {
-    const passwordHash = await bcrypt.hash(password, 10);
     const store = await prisma.store.create({
       data: {
         name,
-        passwordHash,
+        password,
         address,
       },
     });
-    // Do not return passwordHash in response
-    const { passwordHash: _, ...storeWithoutHash } = store;
-    res.status(201).json(storeWithoutHash);
+
+    // Do not return password in response
+    const { password: _, ...storeWithoutPassword } = store;
+    res.status(201).json(storeWithoutPassword);
   } catch (error) {
     res.status(400).json({ error: (error as Error).message });
   }

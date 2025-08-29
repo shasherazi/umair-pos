@@ -9,15 +9,15 @@ datasource db {
 }
 
 model Store {
-  id           Int        @id @default(autoincrement())
-  name         String     @unique
-  address      String
-  passwordHash String
-  products     Product[]
-  sales        Sale[]
-  shops        Shop[]
-  salesmen     Salesman[]
-  createdAt    DateTime   @default(now())
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  address   String
+  password  String
+  products  Product[]
+  sales     Sale[]
+  shops     Shop[]
+  salesmen  Salesman[]
+  createdAt DateTime   @default(now())
 }
 
 model Shop {
