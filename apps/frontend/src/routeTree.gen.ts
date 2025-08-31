@@ -26,7 +26,8 @@ import { Route as ReportsShopsIndexRouteImport } from './routes/reports/shops/in
 import { Route as ReportsSalesIndexRouteImport } from './routes/reports/sales/index'
 import { Route as ReportsProductsIndexRouteImport } from './routes/reports/products/index'
 import { Route as ReportsSalesNewRouteImport } from './routes/reports/sales/new'
-import { Route as ReportsSalesIdRouteImport } from './routes/reports/sales/$id'
+import { Route as ReportsSalesIdIndexRouteImport } from './routes/reports/sales/$id/index'
+import { Route as ReportsSalesIdEditRouteImport } from './routes/reports/sales/$id/edit'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -113,9 +114,14 @@ const ReportsSalesNewRoute = ReportsSalesNewRouteImport.update({
   path: '/reports/sales/new',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ReportsSalesIdRoute = ReportsSalesIdRouteImport.update({
-  id: '/reports/sales/$id',
-  path: '/reports/sales/$id',
+const ReportsSalesIdIndexRoute = ReportsSalesIdIndexRouteImport.update({
+  id: '/reports/sales/$id/',
+  path: '/reports/sales/$id/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ReportsSalesIdEditRoute = ReportsSalesIdEditRouteImport.update({
+  id: '/reports/sales/$id/edit',
+  path: '/reports/sales/$id/edit',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -133,11 +139,12 @@ export interface FileRoutesByFullPath {
   '/inventory': typeof InventoryIndexRoute
   '/salesmen': typeof SalesmenIndexRoute
   '/shops': typeof ShopsIndexRoute
-  '/reports/sales/$id': typeof ReportsSalesIdRoute
   '/reports/sales/new': typeof ReportsSalesNewRoute
   '/reports/products': typeof ReportsProductsIndexRoute
   '/reports/sales': typeof ReportsSalesIndexRoute
   '/reports/shops': typeof ReportsShopsIndexRoute
+  '/reports/sales/$id/edit': typeof ReportsSalesIdEditRoute
+  '/reports/sales/$id': typeof ReportsSalesIdIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -153,11 +160,12 @@ export interface FileRoutesByTo {
   '/inventory': typeof InventoryIndexRoute
   '/salesmen': typeof SalesmenIndexRoute
   '/shops': typeof ShopsIndexRoute
-  '/reports/sales/$id': typeof ReportsSalesIdRoute
   '/reports/sales/new': typeof ReportsSalesNewRoute
   '/reports/products': typeof ReportsProductsIndexRoute
   '/reports/sales': typeof ReportsSalesIndexRoute
   '/reports/shops': typeof ReportsShopsIndexRoute
+  '/reports/sales/$id/edit': typeof ReportsSalesIdEditRoute
+  '/reports/sales/$id': typeof ReportsSalesIdIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -174,11 +182,12 @@ export interface FileRoutesById {
   '/inventory/': typeof InventoryIndexRoute
   '/salesmen/': typeof SalesmenIndexRoute
   '/shops/': typeof ShopsIndexRoute
-  '/reports/sales/$id': typeof ReportsSalesIdRoute
   '/reports/sales/new': typeof ReportsSalesNewRoute
   '/reports/products/': typeof ReportsProductsIndexRoute
   '/reports/sales/': typeof ReportsSalesIndexRoute
   '/reports/shops/': typeof ReportsShopsIndexRoute
+  '/reports/sales/$id/edit': typeof ReportsSalesIdEditRoute
+  '/reports/sales/$id/': typeof ReportsSalesIdIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -196,11 +205,12 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/salesmen'
     | '/shops'
-    | '/reports/sales/$id'
     | '/reports/sales/new'
     | '/reports/products'
     | '/reports/sales'
     | '/reports/shops'
+    | '/reports/sales/$id/edit'
+    | '/reports/sales/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -216,11 +226,12 @@ export interface FileRouteTypes {
     | '/inventory'
     | '/salesmen'
     | '/shops'
-    | '/reports/sales/$id'
     | '/reports/sales/new'
     | '/reports/products'
     | '/reports/sales'
     | '/reports/shops'
+    | '/reports/sales/$id/edit'
+    | '/reports/sales/$id'
   id:
     | '__root__'
     | '/'
@@ -236,11 +247,12 @@ export interface FileRouteTypes {
     | '/inventory/'
     | '/salesmen/'
     | '/shops/'
-    | '/reports/sales/$id'
     | '/reports/sales/new'
     | '/reports/products/'
     | '/reports/sales/'
     | '/reports/shops/'
+    | '/reports/sales/$id/edit'
+    | '/reports/sales/$id/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -257,11 +269,12 @@ export interface RootRouteChildren {
   InventoryIndexRoute: typeof InventoryIndexRoute
   SalesmenIndexRoute: typeof SalesmenIndexRoute
   ShopsIndexRoute: typeof ShopsIndexRoute
-  ReportsSalesIdRoute: typeof ReportsSalesIdRoute
   ReportsSalesNewRoute: typeof ReportsSalesNewRoute
   ReportsProductsIndexRoute: typeof ReportsProductsIndexRoute
   ReportsSalesIndexRoute: typeof ReportsSalesIndexRoute
   ReportsShopsIndexRoute: typeof ReportsShopsIndexRoute
+  ReportsSalesIdEditRoute: typeof ReportsSalesIdEditRoute
+  ReportsSalesIdIndexRoute: typeof ReportsSalesIdIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -385,11 +398,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ReportsSalesNewRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/reports/sales/$id': {
-      id: '/reports/sales/$id'
+    '/reports/sales/$id/': {
+      id: '/reports/sales/$id/'
       path: '/reports/sales/$id'
       fullPath: '/reports/sales/$id'
-      preLoaderRoute: typeof ReportsSalesIdRouteImport
+      preLoaderRoute: typeof ReportsSalesIdIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reports/sales/$id/edit': {
+      id: '/reports/sales/$id/edit'
+      path: '/reports/sales/$id/edit'
+      fullPath: '/reports/sales/$id/edit'
+      preLoaderRoute: typeof ReportsSalesIdEditRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -409,11 +429,12 @@ const rootRouteChildren: RootRouteChildren = {
   InventoryIndexRoute: InventoryIndexRoute,
   SalesmenIndexRoute: SalesmenIndexRoute,
   ShopsIndexRoute: ShopsIndexRoute,
-  ReportsSalesIdRoute: ReportsSalesIdRoute,
   ReportsSalesNewRoute: ReportsSalesNewRoute,
   ReportsProductsIndexRoute: ReportsProductsIndexRoute,
   ReportsSalesIndexRoute: ReportsSalesIndexRoute,
   ReportsShopsIndexRoute: ReportsShopsIndexRoute,
+  ReportsSalesIdEditRoute: ReportsSalesIdEditRoute,
+  ReportsSalesIdIndexRoute: ReportsSalesIdIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

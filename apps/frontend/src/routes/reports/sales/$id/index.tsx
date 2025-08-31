@@ -1,4 +1,7 @@
 import PrintIcon from "@mui/icons-material/Print";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import {
   createFileRoute,
   useParams,
@@ -17,8 +20,13 @@ import {
   Paper,
   Button,
   Stack,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import { useState } from "react";
 import { formatMoney } from "@shared/utils/formatMoney";
 
 const fetchSale = async (id: string) => {
@@ -28,7 +36,7 @@ const fetchSale = async (id: string) => {
 };
 
 function SaleDetails() {
-  const { id } = useParams({ from: "/reports/sales/$id" });
+  const { id } = useParams({ from: "/reports/sales/$id/" });
   const navigate = useNavigate();
 
   const {
@@ -39,6 +47,8 @@ function SaleDetails() {
     queryKey: ["sale", id],
     queryFn: () => fetchSale(id),
   });
+
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   if (isLoading) return <Typography>Loading...</Typography>;
   if (error || !sale)
@@ -57,6 +67,17 @@ function SaleDetails() {
   const totalDiscount = totalGross * (saleDiscount / 100);
   const totalNet = totalGross - totalDiscount;
 
+  // Check if sale is from today
+  const isSameDay = (() => {
+    const saleDate = new Date(sale.saleTime);
+    const now = new Date();
+    return (
+      saleDate.getFullYear() === now.getFullYear() &&
+      saleDate.getMonth() === now.getMonth() &&
+      saleDate.getDate() === now.getDate()
+    );
+  })();
+
   const handlePrint = () => {
     fetch(`http://localhost:3001/api/sales/${sale.id}/invoice-pdf`, {
       method: "GET",
@@ -74,6 +95,24 @@ function SaleDetails() {
       });
   };
 
+  const handleDelete = async () => {
+    setDeleteDialogOpen(false);
+    try {
+      const res = await fetch(`http://localhost:3001/api/sales/${sale.id}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Failed to delete sale");
+      }
+      // Optionally, show a success message or toast here
+      navigate({ to: "/reports/sales" });
+    } catch (err: any) {
+      // Optionally, show an error message or toast here
+      alert(err.message || "Failed to delete sale");
+    }
+  };
+
   return (
     <Box sx={{ mx: "auto", mt: 4, p: 2, maxWidth: 1000 }}>
       <Stack direction="row" alignItems="center" spacing={2} mb={2}>
@@ -86,6 +125,23 @@ function SaleDetails() {
         <Typography variant="h5" flexGrow={1}>
           Invoice #{sale.id}
         </Typography>
+        {isSameDay && (
+          <Button
+            variant="outlined"
+            startIcon={<EditIcon />}
+            onClick={() => navigate({ to: `/reports/sales/${sale.id}/edit` })}
+          >
+            Edit
+          </Button>
+        )}
+        <Button
+          variant="outlined"
+          color="error"
+          startIcon={<DeleteIcon />}
+          onClick={() => setDeleteDialogOpen(true)}
+        >
+          Delete
+        </Button>
         <Button
           variant="outlined"
           startIcon={<PrintIcon />}
@@ -95,6 +151,26 @@ function SaleDetails() {
           Export as PDF
         </Button>
       </Stack>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
+        <DialogTitle>Confirm Deletion</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this sale? This action cannot be
+            undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Cancel</Button>
+          <Button color="error" onClick={handleDelete}>
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Header Info */}
       <Box sx={{ mb: 2 }}>
@@ -179,6 +255,6 @@ function SaleDetails() {
   );
 }
 
-export const Route = createFileRoute("/reports/sales/$id")({
+export const Route = createFileRoute("/reports/sales/$id/")({
   component: SaleDetails,
 });

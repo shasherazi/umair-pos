@@ -1,7 +1,7 @@
 import { Router } from "express";
 import PDFDocument from "pdfkit";
 import prisma from "../prisma";
-import { saleCreateSchema } from "@shared/validation/sale";
+import { saleCreateSchema, saleEditSchema } from "@shared/validation/sale";
 import { formatDateTime } from "@shared/utils/formatDateTimeForInvoice";
 import { formatMoney } from "@shared/utils/formatMoney";
 import { getDateRange } from "@shared/utils/getDateRange";
@@ -453,6 +453,298 @@ router.post("/", async (req, res) => {
   } catch (error) {
     res.status(400).json({ error: (error as Error).message });
   }
+});
+
+router.patch("/:id", async (req, res) => {
+  const saleId = Number(req.params.id);
+  if (isNaN(saleId)) {
+    return res.status(400).json({ error: "Invalid sale ID" });
+  }
+
+  // Fetch sale
+  const sale = await prisma.sale.findUnique({
+    where: { id: saleId },
+    include: { saleItems: true, shop: true },
+  });
+  if (!sale) return res.status(404).json({ error: "Sale not found" });
+
+  // Only allow edit if sale is from today
+  const saleDate = new Date(sale.saleTime);
+  const now = new Date();
+  const isSameDay =
+    saleDate.getFullYear() === now.getFullYear() &&
+    saleDate.getMonth() === now.getMonth() &&
+    saleDate.getDate() === now.getDate();
+  if (!isSameDay) {
+    return res.status(403).json({ error: "Sale can only be edited on the same day" });
+  }
+
+  // Validate input
+  const parseResult = saleEditSchema.safeParse(req.body);
+  if (!parseResult.success) {
+    return res.status(400).json({ error: parseResult.error.issues });
+  }
+
+  const {
+    items,
+    discount = sale.discount,
+    saleType = sale.saleType,
+    salesmanId = sale.salesmanId,
+    shopId = sale.shopId
+  } = parseResult.data;
+
+  // Validate shop belongs to same store
+  if (shopId !== sale.shopId) {
+    const newShop = await prisma.shop.findUnique({
+      where: { id: shopId }
+    });
+    if (!newShop || newShop.storeId !== sale.storeId) {
+      return res.status(400).json({ error: "Invalid shop for this store" });
+    }
+  }
+
+  // Fetch products with current stock
+  const productIds = items.map((item) => item.productId);
+  const products = await prisma.product.findMany({
+    where: { id: { in: productIds }, storeId: sale.storeId },
+  });
+  if (products.length !== items.length) {
+    return res.status(400).json({ error: "One or more products not found" });
+  }
+
+  // Calculate stock changes for validation
+  // For each product, calculate: current_stock + old_quantity - new_quantity
+  const stockValidations: any = [];
+
+  for (const item of items) {
+    const product = products.find((p) => p.id === item.productId);
+    if (!product) {
+      return res.status(400).json({ error: `Product ${item.productId} not found` });
+    }
+
+    // Find the old quantity for this product (if it existed in the original sale)
+    const oldSaleItem = sale.saleItems.find((si) => si.productId === item.productId);
+    const oldQuantity = oldSaleItem ? oldSaleItem.quantity : 0;
+
+    // Calculate what the stock would be after the edit
+    const effectiveStock = product.stock + oldQuantity - item.quantity;
+
+    if (effectiveStock < 0) {
+      return res.status(400).json({
+        error: `Not enough stock for product "${product.name}". Available after restoring old quantity: ${product.stock + oldQuantity}, Requested: ${item.quantity}`,
+      });
+    }
+
+    stockValidations.push({
+      productId: item.productId,
+      oldQuantity,
+      newQuantity: item.quantity,
+      stockChange: oldQuantity - item.quantity // positive means stock increase, negative means decrease
+    });
+  }
+
+  // Also handle products that were in the old sale but not in the new sale (they get fully restored)
+  for (const oldItem of sale.saleItems) {
+    const stillInSale = items.some(item => item.productId === oldItem.productId);
+    if (!stillInSale) {
+      stockValidations.push({
+        productId: oldItem.productId,
+        oldQuantity: oldItem.quantity,
+        newQuantity: 0,
+        stockChange: oldItem.quantity // full restoration
+      });
+    }
+  }
+
+  // Calculate new total
+  let total = 0;
+  const saleItemsData = items.map((item) => {
+    total += item.price * item.quantity;
+    return {
+      productId: item.productId,
+      quantity: item.quantity,
+      price: item.price,
+    };
+  });
+  total = total * (1 - discount / 100);
+
+  // Transaction: update sale, sale items, update product stock, update shops
+  const updatedSale = await prisma.$transaction(async (tx) => {
+    // Delete previous sale items
+    await tx.saleItem.deleteMany({ where: { saleId } });
+
+    // Create new sale items
+    await Promise.all(
+      saleItemsData.map((item) =>
+        tx.saleItem.create({
+          data: { ...item, saleId },
+        })
+      )
+    );
+
+    // Update sale
+    const saleUpdate = await tx.sale.update({
+      where: { id: saleId },
+      data: {
+        discount,
+        total,
+        saleType,
+        salesmanId,
+        shopId,
+      },
+      include: {
+        saleItems: true,
+        shop: true,
+        salesman: true,
+      },
+    });
+
+    // Update stock based on calculated changes
+    for (const validation of stockValidations) {
+      if (validation.stockChange !== 0) {
+        await tx.product.update({
+          where: { id: validation.productId },
+          data: { stock: { increment: validation.stockChange } },
+        });
+      }
+    }
+
+    // Update previous shop (decrement old totals) - only if shop changed
+    if (sale.shopId !== shopId) {
+      const prevShopUpdate: any = {};
+      if (sale.saleType === "CASH") {
+        prevShopUpdate.cashPaid = { decrement: sale.total };
+      } else if (sale.saleType === "CREDIT") {
+        prevShopUpdate.credit = { decrement: sale.total };
+      }
+
+      if (Object.keys(prevShopUpdate).length > 0) {
+        await tx.shop.update({
+          where: { id: sale.shopId },
+          data: prevShopUpdate,
+        });
+      }
+
+      // Update new shop (increment new totals)
+      const newShopUpdate: any = {};
+      if (saleType === "CASH") {
+        newShopUpdate.cashPaid = { increment: total };
+      } else if (saleType === "CREDIT") {
+        newShopUpdate.credit = { increment: total };
+      }
+
+      if (Object.keys(newShopUpdate).length > 0) {
+        await tx.shop.update({
+          where: { id: shopId },
+          data: newShopUpdate,
+        });
+      }
+    } else {
+      // Same shop, just update the difference
+      const totalDifference = total - sale.total;
+      const saleTypeChanged = sale.saleType !== saleType;
+
+      if (saleTypeChanged) {
+        // Remove from old type, add to new type
+        const removeUpdate: any = {};
+        const addUpdate: any = {};
+
+        if (sale.saleType === "CASH") {
+          removeUpdate.cashPaid = { decrement: sale.total };
+        } else if (sale.saleType === "CREDIT") {
+          removeUpdate.credit = { decrement: sale.total };
+        }
+
+        if (saleType === "CASH") {
+          addUpdate.cashPaid = { increment: total };
+        } else if (saleType === "CREDIT") {
+          addUpdate.credit = { increment: total };
+        }
+
+        await tx.shop.update({
+          where: { id: shopId },
+          data: { ...removeUpdate, ...addUpdate },
+        });
+      } else if (totalDifference !== 0) {
+        // Same type, just update the difference
+        const shopUpdate: any = {};
+        if (saleType === "CASH") {
+          shopUpdate.cashPaid = { increment: totalDifference };
+        } else if (saleType === "CREDIT") {
+          shopUpdate.credit = { increment: totalDifference };
+        }
+
+        if (Object.keys(shopUpdate).length > 0) {
+          await tx.shop.update({
+            where: { id: shopId },
+            data: shopUpdate,
+          });
+        }
+      }
+    }
+
+    return saleUpdate;
+  });
+
+  res.json(updatedSale);
+});
+
+router.delete("/:id", async (req, res) => {
+  const saleId = Number(req.params.id);
+  if (isNaN(saleId)) {
+    return res.status(400).json({ error: "Invalid sale ID" });
+  }
+
+  // Fetch sale with items and shop
+  const sale = await prisma.sale.findUnique({
+    where: { id: saleId },
+    include: { saleItems: true, shop: true },
+  });
+  if (!sale) return res.status(404).json({ error: "Sale not found" });
+
+  // Only allow delete if sale is from today
+  const saleDate = new Date(sale.saleTime);
+  const now = new Date();
+  const isSameDay =
+    saleDate.getFullYear() === now.getFullYear() &&
+    saleDate.getMonth() === now.getMonth() &&
+    saleDate.getDate() === now.getDate();
+  if (!isSameDay) {
+    return res.status(403).json({ error: "Sale can only be deleted on the same day" });
+  }
+
+  // Transaction: restore stock, update shop, delete sale items, delete sale
+  await prisma.$transaction(async (tx) => {
+    // Restore stock for each sale item
+    for (const item of sale.saleItems) {
+      await tx.product.update({
+        where: { id: item.productId },
+        data: { stock: { increment: item.quantity } },
+      });
+    }
+
+    // Update shop cashPaid/credit
+    const shopUpdate: any = {};
+    if (sale.saleType === "CASH") {
+      shopUpdate.cashPaid = { decrement: sale.total };
+    } else if (sale.saleType === "CREDIT") {
+      shopUpdate.credit = { decrement: sale.total };
+    }
+    if (Object.keys(shopUpdate).length > 0) {
+      await tx.shop.update({
+        where: { id: sale.shopId },
+        data: shopUpdate,
+      });
+    }
+
+    // Delete sale items
+    await tx.saleItem.deleteMany({ where: { saleId } });
+
+    // Delete sale
+    await tx.sale.delete({ where: { id: saleId } });
+  });
+
+  res.json({ success: true });
 });
 
 export default router;
