@@ -1,19 +1,4 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: pos-postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: shasherazi
-      POSTGRES_DB: pos
-      POSTGRES_HOST_AUTH_METHOD: trust # allows no password for local dev
-    ports:
-      - "55432:5432" # Host port 55432 -> Container port 5432
-    volumes:
-      - pos_pg_data:/var/lib/postgresql/data
-    networks:
-      - pos-network
-
   backend:
     build:
       context: .
@@ -22,16 +7,13 @@ services:
     restart: unless-stopped
     command: sh -c "pnpm run migrate && pnpm start"
     environment:
-      DATABASE_URL: postgresql://shasherazi@postgres:5432/pos
       PORT: 3001
       NODE_ENV: production
       ADMIN_PASSWORD: "super1"
     ports:
       - "3001:3001"
-    depends_on:
-      - postgres
-    networks:
-      - pos-network
+    volumes:
+      - ./data/sqlite/dev.db:/app/apps/backend/prisma/dev.db
 
   frontend:
     build:
@@ -43,12 +25,3 @@ services:
       - "8080:80"
     depends_on:
       - backend
-    networks:
-      - pos-network
-
-volumes:
-  pos_pg_data:
-
-networks:
-  pos-network:
-    driver: bridge

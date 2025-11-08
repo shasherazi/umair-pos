@@ -72,6 +72,7 @@ function ProductDetailsPage() {
   });
 
   // Form state
+  const [name, setName] = useState<string>("");
   const [price, setPrice] = useState<string>("");
   const [stockChange, setStockChange] = useState<string>("");
   const [editError, setEditError] = useState<string | null>(null);
@@ -80,6 +81,9 @@ function ProductDetailsPage() {
   const mutation = useMutation({
     mutationFn: async () => {
       const payload: any = {};
+      if (name.trim() !== "" && name !== product.name) {
+        payload.name = name.trim();
+      }
       if (price !== "") {
         const priceNum = Number(price);
         payload.price = priceNum;
@@ -170,6 +174,12 @@ function ProductDetailsPage() {
         Edit Product
       </Typography>
       <Stack spacing={2} mb={2}>
+        <TextField
+          label="Product Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
+        />
         <TextField
           label="Unit Price"
           type="number"

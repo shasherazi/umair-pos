@@ -16,6 +16,7 @@ RUN pnpm install --frozen-lockfile
 
 # Build the backend
 WORKDIR /app/apps/backend
+RUN mkdir -p prisma && touch prisma/dev.db
 RUN pnpm run build
 
 # Expose port

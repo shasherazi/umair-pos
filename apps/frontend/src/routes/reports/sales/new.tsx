@@ -286,7 +286,7 @@ function NewSale() {
                           input: {
                             startAdornment: (
                               <InputAdornment position="start">
-                                $
+                                Rs.
                               </InputAdornment>
                             ),
                           },

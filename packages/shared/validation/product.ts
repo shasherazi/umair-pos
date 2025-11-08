@@ -9,6 +9,7 @@ export const productCreateSchema = z.object({
 
 
 export const productPatchSchema = z.object({
+  name: z.string().min(1, "Name is required").optional(),
   price: z.number().nonnegative().optional(),
   stockChange: z.number().int().positive("Stock change must be a positive integer").optional(),
 });

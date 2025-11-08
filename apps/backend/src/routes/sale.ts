@@ -5,6 +5,7 @@ import { saleCreateSchema, saleEditSchema } from "@shared/validation/sale";
 import { formatDateTime } from "@shared/utils/formatDateTimeForInvoice";
 import { formatMoney } from "@shared/utils/formatMoney";
 import { getDateRange } from "@shared/utils/getDateRange";
+import { size } from "pdfkit/js/page";
 
 const router = Router();
 
@@ -135,10 +136,13 @@ router.get("/:id/invoice-pdf", async (req, res) => {
   const storeAddressFontSize = 12;
   const shopNameFontSize = 10;
   const shopAddressFontSize = 10;
+  const shopPhoneFontSize = 10;
   const shopDataMaxWidth = 200;
   const invoiceNumberFontSize = 10;
   const saleDateFontSize = 10;
   const salesManFontSize = 10;
+  const tableHeaderFontSize = 8;
+  const tableRowFontSize = 8;
 
   const lineLength = pageWidth / 3;
   const leftLineX = margin;
@@ -187,6 +191,11 @@ router.get("/:id/invoice-pdf", async (req, res) => {
   );
 
   currentY = doc.y;
+
+  doc.fontSize(shopPhoneFontSize).text(`Phone: ${sale.shop.phone}`, margin, doc.y, {
+    width: shopDataMaxWidth,
+    align: "left",
+  });
 
   doc.fontSize(salesManFontSize).text(
     `Delivery Man: ${sale.salesman.name}`,
@@ -246,14 +255,15 @@ router.get("/:id/invoice-pdf", async (req, res) => {
 
   doc.table({
     position: { x: margin, y: doc.y + 20 },
-    columnStyles: [50, "*", 60, "*", "*", "*", "*"],
+    columnStyles: [30, 150, 40, "*", "*", "*", "*"],
     rowStyles: (rowIndex) => {
       if (rowIndex === tableRows.length + 1) {
-        return { backgroundColor: "#f0f0f0", font: { src: "Helvetica-Bold" } };
+        return { backgroundColor: "#f0f0f0", font: { src: "Helvetica-Bold", size: tableHeaderFontSize } };
       }
       if (rowIndex === 0) {
-        return { font: { src: "Helvetica-Bold" } };
+        return { font: { src: "Helvetica-Bold", size: tableHeaderFontSize } };
       }
+      return { font: { src: "Helvetica", size: tableRowFontSize } };
     },
     data: [
       columnHeaders,
@@ -324,8 +334,15 @@ router.get("/:id/invoice-pdf", async (req, res) => {
 
   // urdu lines
   const targetWidth = doc.page.width * 0.6;
-  const x = doc.page.width - margin - targetWidth + 100;
-  const y = doc.y + 25;
+  const imageHeight = 224;
+  const bottomMargin = doc.page.margins.bottom || 20;
+  const x = doc.page.width - margin - targetWidth;
+  let y = doc.y + 25;
+
+  if (y + imageHeight > doc.page.height - bottomMargin) {
+    doc.addPage();
+    y = doc.y; // reset y to top (current doc.y after addPage)
+  }
 
   doc
     .image("assets/urdu.png", x, y, {

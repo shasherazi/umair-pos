@@ -252,33 +252,27 @@ router.patch("/:id", async (req, res) => {
   if (!parseResult.success) {
     return res.status(400).json({ error: parseResult.error.issues });
   }
-  const { price, stockChange } = parseResult.data;
+  const { name, price, stockChange } = parseResult.data;
 
   try {
-    // Fetch current product
     const product = await prisma.product.findUnique({ where: { id: productId } });
     if (!product) {
       return res.status(404).json({ error: "Product not found" });
     }
 
-    // Prepare update data
     const updateData: any = {};
-
-    // Price update
+    if (name !== undefined) {
+      updateData.name = name;
+    }
     if (price !== undefined) {
       updateData.price = price;
     }
-
-    // Stock change (only allow positive)
     if (stockChange !== undefined) {
       updateData.stock = product.stock + stockChange;
     }
-
     if (Object.keys(updateData).length === 0) {
       return res.status(400).json({ error: "No valid fields to update" });
     }
-
-    // Update product
     const updatedProduct = await prisma.product.update({
       where: { id: productId },
       data: updateData,
